@@ -121,13 +121,13 @@ let interp_cnd_test (fo, fs, fz) tru () =
   let fls' = List.filter (fun c -> not (List.mem c tru')) all in
   List.iter (fun c ->
     if not (List.mem c tru)
-    then failwith (Printf.sprintf "o:%b s:%b f:%b %s expected"
+    then failwith (Printf.sprintf "o:%b s:%b z:%b %s expected"
       fo fs fz (string_of_cnd c))
     else ()
   ) tru';
   List.iter (fun c ->
     if not (List.mem c fls)
-    then failwith (Printf.sprintf "o:%b s:%b f:%b %s !expected"
+    then failwith (Printf.sprintf "o:%b s:%b z:%b %s !expected"
       fo fs fz (string_of_cnd c))
     else ()
   ) fls'

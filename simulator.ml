@@ -149,8 +149,8 @@ match x with
   | Neq ->  (fz = false) 
   | Lt ->  (fs != fo) 
   | Le ->  (fs != fo || fz=true) 
-  | Gt ->  (fs = fo)
-  | Ge ->  (fs = fo || fz=true) 
+  | Gt ->  (fs = fo) && (fz = false)
+  | Ge ->  (fs = fo) 
 
 
 (* Maps an X86lite address into Some OCaml array index,
