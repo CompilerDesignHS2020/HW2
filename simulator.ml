@@ -95,7 +95,7 @@ let sbytes_of_int64 (i:int64) : sbyte list =
   let open Char in 
   let open Int64 in
   List.map (fun n -> Byte (shift_right i n |> logand 0xffL |> to_int |> chr))
-           [0; 8; 16; 24; 32; 40; 48; 56]
+    [0; 8; 16; 24; 32; 40; 48; 56]
 
 (* Convert an sbyte representation to an int64 *)
 let int64_of_sbytes (bs:sbyte list) : int64 =
@@ -144,7 +144,7 @@ let debug_simulator = ref false
 
 (* Interpret a condition code with respect to the given flags. *)
 let interp_cnd {fo; fs; fz} : cnd -> bool = fun x -> 
-match x with
+  match x with
   | Eq ->  (fz = true) 
   | Neq ->  (fz = false) 
   | Lt ->  (fs != fo) 
@@ -156,7 +156,10 @@ match x with
 (* Maps an X86lite address into Some OCaml array index,
    or None if the address is not within the legal address space. *)
 let map_addr (addr:quad) : int option =
-failwith "map_addr not implemented"
+  if addr < mem_bot || addr > mem_top then
+    None
+  else
+    Some (Int64.to_int (Int64.sub addr mem_bot  ))
 
 (* Simulates one step of the machine:
     - fetch the instruction at %rip
@@ -166,7 +169,7 @@ failwith "map_addr not implemented"
     - set the condition flags
 *)
 let step (m:mach) : unit =
-failwith "step unimplemented"
+  failwith "step unimplemented"
 
 (* Runs the machine until the rip register reaches a designated
    memory address. Returns the contents of %rax when the 
@@ -203,10 +206,10 @@ exception Redefined_sym of lbl
    - the text segment starts at the lowest address
    - the data segment starts after the text segment
 
-  HINT: List.fold_left and List.fold_right are your friends.
- *)
+   HINT: List.fold_left and List.fold_right are your friends.
+*)
 let assemble (p:prog) : exec =
-failwith "assemble unimplemented"
+  failwith "assemble unimplemented"
 
 (* Convert an object file into an executable machine state. 
     - allocate the mem array
@@ -218,8 +221,8 @@ failwith "assemble unimplemented"
       - the other registers are initialized to 0
     - the condition code flags start as 'false'
 
-  Hint: The Array.make, Array.blit, and Array.of_list library functions 
-  may be of use.
+   Hint: The Array.make, Array.blit, and Array.of_list library functions 
+   may be of use.
 *)
 let load {entry; text_pos; data_pos; text_seg; data_seg} : mach = 
-failwith "load unimplemented"
+  failwith "load unimplemented"
