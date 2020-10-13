@@ -169,7 +169,11 @@ let map_addr (addr:quad) : int option =
     - set the condition flags
 *)
 let step (m:mach) : unit =
-  failwith "step unimplemented"
+  let instruction = m.mem.(Int64.to_int m.regs.( rind Rip)) in
+      
+      
+
+
 
 (* Runs the machine until the rip register reaches a designated
    memory address. Returns the contents of %rax when the 
