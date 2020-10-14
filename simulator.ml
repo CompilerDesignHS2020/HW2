@@ -188,6 +188,7 @@ let rec write_mem (m : mach) (addr : int) (values : sbyte list) : unit =
   | [] -> ()
   | h::tl -> m.mem.(addr) <- h; write_mem m (addr+1) tl
 
+(* write_op mach DEST value_to_write *)
 let write_op (m : mach) (op : operand) (value : int64) : unit = 
   match op with
   | Imm (t)->  () (* Ignore immediate values, they cannot be a destination*)
@@ -211,6 +212,7 @@ let read_mem (m:mach) (ind0:int) : int64 =
   rec_read [] ind0
 
 
+(* read_op mach SRC *)
 let read_op (m:mach) (op : operand)  : int64 =
   match op with
   | Imm (t)-> begin match t with
@@ -231,27 +233,45 @@ let read_op (m:mach) (op : operand)  : int64 =
     read_mem m (get_mem_ind (Int64.add m.regs.(rind r3) i))
 
 let get_elem (l:operand list) (ind0:int) : operand =
-    let rec rec_get (list: operand list) ind =
-        begin match list with 
-          | h::tl -> 
-            if ind = ind0 then 
-              h 
-            else 
-              (rec_get tl (ind+1))
-          | _ -> Imm(Lit(0L))
-        end
-      in 
-    rec_get l 0
+  let rec rec_get (list: operand list) ind =
+    begin match list with 
+      | h::tl -> 
+        if ind = ind0 then 
+          h 
+        else 
+          (rec_get tl (ind+1))
+      | _ -> Imm(Lit(0L))
+    end
+  in 
+  rec_get l 0
 
 
 let step (m:mach) : unit =
   let inst_byte = m.mem.(get_mem_ind m.regs.( rind Rip)) in
   match inst_byte with
   | InsB0 (opcode, oplist) -> begin match opcode with
+      (* movq oplist0 to oplist1 *)
       | Movq -> write_op m (get_elem oplist 1) (read_op m (get_elem oplist 0)) 
-      | Pushq -> write_op m operand(Reg(Rsp)) (Int64.sub (read_op m operand(Reg(Rsp)) 8)); write_op m (get_elem oplist 0) (read_op m operand(Reg(Rsp))) 
-      | Popq
-      | Leaq
+
+      (* pushq SRC: rsp = rsp - 8; move oplist0 to mem(rsp) *)
+      | Pushq ->
+        write_op m operand(Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp)) 8)); 
+        write_op m operand(Ind2(Reg(Rsp))) (read_op m (get_elem oplist 0)) 
+
+      (* popq DEST: move mem(rsp) to oplist0; rsp = rsp + 8 *)
+      | Popq ->
+        write_op m (get_elem oplist 0) (read_op m operand(Ind2(Reg(Rsp)))); 
+        write_op m operand(Reg(Rsp)) (Int64.add (read_op m operand(Reg(Rsp)) 8)) 
+
+      (* leaq Ind DEST: store memory address saved in Ind to DEST *)
+      | Leaq -> 
+        begin match get_elem oplist 0 with
+          | Ind1(i) -> write_op m (get_elem oplist 1) (immception i)
+          | Ind2(r) -> write_op m (get_elem oplist 1) (read_op m operand(Reg(r)))
+          | Ind3(i,r) ->  write_op m (get_elem oplist 1) (Int64.add (read_op m operand(Reg(r))) (immception i))
+        end
+      | _ -> ()
+      (* 
       | Incq 
       | Decq 
       | Negq 
@@ -271,6 +291,7 @@ let step (m:mach) : unit =
       | Set 
       | Callq 
       | Retq
+      *)
     end
   | InsFrag -> () (* never read this you fool *)
   | Byte(b) -> () (* read data byte, this is illegal *)
