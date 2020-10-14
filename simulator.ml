@@ -168,6 +168,25 @@ let map_addr (addr:quad) : int option =
     - update the registers and/or memory appropriately
     - set the condition flags
 *)
+
+let rec immception i : imm -> int64 =
+  match i with
+    | Lit(li) -> match li with
+      | quad(q) -> q
+    | Lbl (la) -> immception la
+
+let read_op op : operand -> int64 =
+  match op with
+    | Imm (t)-> 
+    | Reg
+    | Ind1
+    | Ind2
+    | Ind3
+
+
+let write_op op : operand -> value : int64 -> unit = 
+
+
 let step (m:mach) : unit =
   let instruction = m.mem.(Int64.to_int m.regs.( rind Rip)) in
       
