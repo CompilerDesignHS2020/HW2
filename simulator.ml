@@ -200,16 +200,35 @@ let write_op (m : mach) (op : operand) (value : int64) : unit =
     let memory_index = get_memory_index memory_address in (* the index in the memory  *)
     write_mem m (memory_index) (sbytes_of_int64 value)
 
-let read_op op : operand -> m : mach -> int64 =
-  match op with
-  | Imm (t)-> match t with
-    | Lit(li) -> li
-    | Lbl (la) -> 0L
-    | Reg (reg) -> m.regs.(rind reg)
-    | Ind1
-    | Ind2
-    | Ind3
 
+let read_mem (m:mach) (ind0:int) : int64 =
+  let rec rec_read list ind =
+    if (ind - ind0) = 8 then
+      int64_of_sbytes(list)
+    else
+      rec_read (list @ [m.mem.(ind)]) (ind+1)
+  in 
+  rec_read [] ind0
+
+
+let read_op (op : operand) (m:mach) : int64 =
+  match op with
+    | Imm (t)-> begin match t with
+      | Lit(li) -> li
+      | Lbl(la) -> 0L
+      end
+    | Reg (r) -> m.regs.(rind r)
+    | Ind1 (r1) -> begin match r1 with
+      | Lit(li) -> li
+      | Lbl(la) -> 0L
+    end
+    | Ind2 (r2) -> m.mem.(Int64.to_int m.regs.(rind r2))
+    | Ind3 (i3, r3) -> 
+      let i = begin match i3 with
+        | Lit(li) -> li
+        | Lbl(la) -> 0L
+      end in
+        Int64.sub m.regs.(rind r3) i
 
 
 
