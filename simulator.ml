@@ -170,14 +170,14 @@ let map_addr (addr:quad) : int option =
 *)
 
 (* for our purposes 0 is sufficiently None *)
-let get_memory_index (addr:int64) : int =  
+let get_mem_ind (addr:int64) : int =  
   let mapped_addr = map_addr addr in
   match mapped_addr with
   | None -> 0
   | Some n -> n
 
 (* resolves an imm to a literal (ignores label, returns 0L) *)
-let resolve_imm (i:imm) : int64 =
+let immception (i:imm) : int64 =
   match i with
   | Lit(li) -> li
   | Lbl(lb) -> 0L
@@ -194,10 +194,10 @@ let write_op (m : mach) (op : operand) (value : int64) : unit =
   | Reg (reg) -> m.regs.(rind reg) <- value
   | Ind1 (i1) -> () (* Ignore immediate values, they cannot be a destination*)
   | Ind2 (r2) -> let memory_address = m.regs.(rind r2) in (* the effective address *)
-    let memory_index = get_memory_index memory_address in (* the index in the memory  *)
+    let memory_index = get_mem_ind memory_address in (* the index in the memory  *)
     write_mem m (memory_index) (sbytes_of_int64 value)
-  | Ind3 (i3, r3) -> let memory_address = (Int64.add m.regs.(rind r3) (resolve_imm i3)) in (* the effective address *)
-    let memory_index = get_memory_index memory_address in (* the index in the memory  *)
+  | Ind3 (i3, r3) -> let memory_address = (Int64.add m.regs.(rind r3) (immception i3)) in (* the effective address *)
+    let memory_index = get_mem_ind memory_address in (* the index in the memory  *)
     write_mem m (memory_index) (sbytes_of_int64 value)
 
 
@@ -222,13 +222,13 @@ let read_op (op : operand) (m:mach) : int64 =
       | Lit(li) -> li
       | Lbl(la) -> 0L
     end
-    | Ind2 (r2) -> m.mem.(Int64.to_int m.regs.(rind r2))
+    | Ind2 (r2) -> read_mem m (get_mem_ind m.regs.(rind r2))
     | Ind3 (i3, r3) -> 
       let i = begin match i3 with
         | Lit(li) -> li
         | Lbl(la) -> 0L
       end in
-        Int64.sub m.regs.(rind r3) i
+        read_mem m (get_mem_ind (Int64.add m.regs.(rind r3) i))
 
 
 
