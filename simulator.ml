@@ -271,9 +271,12 @@ let step (m:mach) : unit =
           | Ind3(i,r) ->  write_op m (get_elem oplist 1) (Int64.add (read_op m (Reg(r))) (immception i))
           | _ -> ()
         end
+      (* Incq DEST: increment DEST by 1, set flags *)
+      | Incq ->
+      
+      write_op m (get_elem oplist 0) (Int64.add (read_op m (get_elem oplist 0)) 1L)
       | _ -> ()
       (* 
-      | Incq 
       | Decq 
       | Negq 
       | Notq
