@@ -293,6 +293,23 @@ let step (m:mach) : unit =
       | Callq 
       | Retq
       *)
+
+      | Set(cnd) ->
+        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
+        write_op m (Ind2(Rsp)) (read_op m (Reg(Rip)));
+        write_op m (Reg(Rip)) (read_op m (get_elem oplist 0)) 
+
+      (* Callq SRC: push rip to top of stack; rsp = rsp - 8; move SRC to rip*)
+      | Callq ->
+        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
+        write_op m (Ind2(Rsp)) (read_op m (Reg(Rip)));
+        write_op m (Reg(Rip)) (read_op m (get_elem oplist 0)) 
+
+      (* Retq: pop top of stack into rip; rsp = rsp + 8*)
+      | Retq -> 
+        write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
+        write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
+
     end
   | InsFrag -> () (* never read this you fool *)
   | Byte(b) -> () (* read data byte, this is illegal *)
