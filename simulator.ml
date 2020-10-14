@@ -169,33 +169,64 @@ let map_addr (addr:quad) : int option =
     - set the condition flags
 *)
 
+(* for our purposes 0 is sufficiently None *)
+let get_memory_index (addr:int64) : int =  
+  let mapped_addr = map_addr addr in
+  match mapped_addr with
+  | None -> 0
+  | Some n -> n
+
+(* resolves an imm to a literal (ignores label, returns 0L) *)
+let resolve_imm (i:imm) : int64 =
+  match i with
+  | Lit(li) -> li
+  | Lbl(lb) -> 0L
+
+(* Writes a list of 8 sbytes to the memory address addr *)
+let rec write_mem (m : mach) (addr : int) (values : sbyte list) : unit =
+  match values with
+  | [] -> ()
+  | h::tl -> m.mem.(addr) <- h; write_mem m (addr+1) tl
+
+let write_op (m : mach) (op : operand) (value : int64) : unit = 
+  match op with
+  | Imm (t)->  () (* Ignore immediate values, they cannot be a destination*)
+  | Reg (reg) -> m.regs.(rind reg) <- value
+  | Ind1 (i1) -> () (* Ignore immediate values, they cannot be a destination*)
+  | Ind2 (r2) -> let memory_address = m.regs.(rind r2) in (* the effective address *)
+    let memory_index = get_memory_index memory_address in (* the index in the memory  *)
+    write_mem m (memory_index) (sbytes_of_int64 value)
+  | Ind3 (i3, r3) -> let memory_address = (Int64.add m.regs.(rind r3) (resolve_imm i3)) in (* the effective address *)
+    let memory_index = get_memory_index memory_address in (* the index in the memory  *)
+    write_mem m (memory_index) (sbytes_of_int64 value)
+
 let read_op op : operand -> m : mach -> int64 =
   match op with
-    | Imm (t)-> match t with
-      | Lit(li) -> li
-      | Lbl (la) -> 0L
+  | Imm (t)-> match t with
+    | Lit(li) -> li
+    | Lbl (la) -> 0L
     | Reg (reg) -> m.regs.(rind reg)
     | Ind1
     | Ind2
     | Ind3
 
 
-let write_op op : operand -> value : int64 -> unit = 
+
 
 
 let step (m:mach) : unit =
   let instruction = m.mem.(Int64.to_int m.regs.( rind Rip)) in
-      
-      
 
 
 
-(* Runs the machine until the rip register reaches a designated
-   memory address. Returns the contents of %rax when the 
-   machine halts. *)
-let run (m:mach) : int64 = 
-  while m.regs.(rind Rip) <> exit_addr do step m done;
-  m.regs.(rind Rax)
+
+
+  (* Runs the machine until the rip register reaches a designated
+     memory address. Returns the contents of %rax when the 
+     machine halts. *)
+  let run (m:mach) : int64 = 
+    while m.regs.(rind Rip) <> exit_addr do step m done;
+    m.regs.(rind Rax)
 
 (* assembling and linking --------------------------------------------------- *)
 
