@@ -234,7 +234,12 @@ let read_op (op : operand) (m:mach) : int64 =
 
 
 let step (m:mach) : unit =
-  let instruction = m.mem.(Int64.to_int m.regs.( rind Rip)) in
+  let instruction = m.mem.(get_memory_index m.regs.( rind Rip)) in
+  match instruction with
+  | InsB0 ->
+  | InsFrag -> () (* never read this you fool *)
+  | Byte -> () (* read data byte, this is illegal *)
+
 
 
 
