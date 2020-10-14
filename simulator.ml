@@ -255,20 +255,21 @@ let step (m:mach) : unit =
 
       (* pushq SRC: rsp = rsp - 8; move oplist0 to mem(rsp) *)
       | Pushq ->
-        write_op m operand(Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp)) 8)); 
-        write_op m operand(Ind2(Reg(Rsp))) (read_op m (get_elem oplist 0)) 
+        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
+        write_op m (Ind2(Rsp)) (read_op m (get_elem oplist 0)) 
 
       (* popq DEST: move mem(rsp) to oplist0; rsp = rsp + 8 *)
       | Popq ->
-        write_op m (get_elem oplist 0) (read_op m operand(Ind2(Reg(Rsp)))); 
-        write_op m operand(Reg(Rsp)) (Int64.add (read_op m operand(Reg(Rsp)) 8)) 
+        write_op m (get_elem oplist 0) (read_op m (Ind2(Rsp))); 
+        write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
 
       (* leaq Ind DEST: store memory address saved in Ind to DEST *)
       | Leaq -> 
         begin match get_elem oplist 0 with
           | Ind1(i) -> write_op m (get_elem oplist 1) (immception i)
-          | Ind2(r) -> write_op m (get_elem oplist 1) (read_op m operand(Reg(r)))
-          | Ind3(i,r) ->  write_op m (get_elem oplist 1) (Int64.add (read_op m operand(Reg(r))) (immception i))
+          | Ind2(r) -> write_op m (get_elem oplist 1) (read_op m (Reg(r)))
+          | Ind3(i,r) ->  write_op m (get_elem oplist 1) (Int64.add (read_op m (Reg(r))) (immception i))
+          | _ -> ()
         end
       | _ -> ()
       (* 
