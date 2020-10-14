@@ -211,7 +211,7 @@ let read_mem (m:mach) (ind0:int) : int64 =
   rec_read [] ind0
 
 
-let read_op (op : operand) (m:mach) : int64 =
+let read_op (m:mach) (op : operand)  : int64 =
   match op with
   | Imm (t)-> begin match t with
       | Lit(li) -> li
@@ -231,14 +231,12 @@ let read_op (op : operand) (m:mach) : int64 =
     read_mem m (get_mem_ind (Int64.add m.regs.(rind r3) i))
 
 
-
-
 let step (m:mach) : unit =
   let inst_byte = m.mem.(get_mem_ind m.regs.( rind Rip)) in
   match inst_byte with
   | InsB0 (opcode, oplist) -> begin match opcode with
-      | Movq -> 
-      | Pushq
+      | Movq -> write_op m (get_elem oplist 1) (read_op m (get_elem oplist 0)) 
+      | Pushq -> write_op m operand(Reg(Rsp)) (Int64.sub (read_op m operand(Reg(Rsp)) 8)); write_op m (get_elem oplist 0) (read_op m operand(Reg(Rsp))) 
       | Popq
       | Leaq
       | Incq 
