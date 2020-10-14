@@ -213,44 +213,68 @@ let read_mem (m:mach) (ind0:int) : int64 =
 
 let read_op (op : operand) (m:mach) : int64 =
   match op with
-    | Imm (t)-> begin match t with
-      | Lit(li) -> li
-      | Lbl(la) -> 0L
-      end
-    | Reg (r) -> m.regs.(rind r)
-    | Ind1 (r1) -> begin match r1 with
+  | Imm (t)-> begin match t with
       | Lit(li) -> li
       | Lbl(la) -> 0L
     end
-    | Ind2 (r2) -> read_mem m (get_mem_ind m.regs.(rind r2))
-    | Ind3 (i3, r3) -> 
-      let i = begin match i3 with
-        | Lit(li) -> li
-        | Lbl(la) -> 0L
-      end in
-        read_mem m (get_mem_ind (Int64.add m.regs.(rind r3) i))
+  | Reg (r) -> m.regs.(rind r)
+  | Ind1 (r1) -> begin match r1 with
+      | Lit(li) -> li
+      | Lbl(la) -> 0L
+    end
+  | Ind2 (r2) -> read_mem m (get_mem_ind m.regs.(rind r2))
+  | Ind3 (i3, r3) -> 
+    let i = begin match i3 with
+      | Lit(li) -> li
+      | Lbl(la) -> 0L
+    end in
+    read_mem m (get_mem_ind (Int64.add m.regs.(rind r3) i))
 
 
 
 
 let step (m:mach) : unit =
-  let instruction = m.mem.(get_memory_index m.regs.( rind Rip)) in
-  match instruction with
-  | InsB0 ->
+  let inst_byte = m.mem.(get_mem_ind m.regs.( rind Rip)) in
+  match inst_byte with
+  | InsB0 (opcode, oplist) -> begin match opcode with
+      | Movq -> 
+      | Pushq
+      | Popq
+      | Leaq
+      | Incq 
+      | Decq 
+      | Negq 
+      | Notq
+      | Addq 
+      | Subq
+      | Imulq 
+      | Xorq 
+      | Orq
+      | Andq
+      | Shlq 
+      | Sarq 
+      | Shrq
+      | Jmp 
+      | J 
+      | Cmpq  
+      | Set 
+      | Callq 
+      | Retq
+    end
   | InsFrag -> () (* never read this you fool *)
-  | Byte -> () (* read data byte, this is illegal *)
+  | Byte(b) -> () (* read data byte, this is illegal *)
 
 
 
 
 
 
-  (* Runs the machine until the rip register reaches a designated
-     memory address. Returns the contents of %rax when the 
-     machine halts. *)
-  let run (m:mach) : int64 = 
-    while m.regs.(rind Rip) <> exit_addr do step m done;
-    m.regs.(rind Rax)
+(* Runs the machine until the rip register reaches a designated
+   memory address. Returns the contents of %rax when the 
+   machine halts. *)
+let run (m:mach) : int64 = 
+  while m.regs.(rind Rip) <> exit_addr do step m done;
+  m.regs.(rind Rax)
 
 (* assembling and linking --------------------------------------------------- *)
 
