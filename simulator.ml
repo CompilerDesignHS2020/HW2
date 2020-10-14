@@ -230,7 +230,18 @@ let read_op (op : operand) (m:mach) : int64 =
     end in
     read_mem m (get_mem_ind (Int64.add m.regs.(rind r3) i))
 
-
+let get_elem (l:operand list) (ind0:int) : operand =
+    let rec rec_get (list: operand list) ind =
+        begin match list with 
+          | h::tl -> 
+            if ind = ind0 then 
+              h 
+            else 
+              (rec_get tl (ind+1))
+          | _ -> Imm(Lit(0L))
+        end
+      in 
+    rec_get l 0
 
 
 let step (m:mach) : unit =
