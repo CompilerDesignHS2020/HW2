@@ -169,11 +169,10 @@ let map_addr (addr:quad) : int option =
     - set the condition flags
 *)
 
-let rec immception i : imm -> int64 =
+let rec immception (i : imm) : int64 =
   match i with
-    | Lit(li) -> match li with
-      | quad(q) -> q
-    | Lbl (la) -> immception la
+    | Lit(li) -> li
+    | Lbl (la) -> 0L
 
 let read_op op : operand -> int64 =
   match op with
