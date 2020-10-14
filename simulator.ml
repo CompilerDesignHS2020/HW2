@@ -169,16 +169,34 @@ let map_addr (addr:quad) : int option =
     - set the condition flags
 *)
 
-let read_op op : operand -> m : mach -> int64 =
-  match op with
-    | Imm (t)-> match t with
-      | Lit(li) -> li
-      | Lbl (la) -> 0L
-    | Reg (reg) -> m.regs.(rind reg)
-    | Ind1
-    | Ind2
-    | Ind3
+let read_mem (m:mach) (ind0:int) : int64 =
+  let rec rec_read list ind =
+    if (ind - ind0) = 8 then
+      int64_of_sbytes(list)
+    else
+      rec_read (list @ [m.mem.(ind)]) (ind+1)
+  in 
+  rec_read [] ind0
 
+
+let read_op (op : operand) (m:mach) : int64 =
+  match op with
+    | Imm (t)-> begin match t with
+      | Lit(li) -> li
+      | Lbl(la) -> 0L
+      end
+    | Reg (r) -> m.regs.(rind r)
+    | Ind1 (r1) -> begin match r1 with
+      | Lit(li) -> li
+      | Lbl(la) -> 0L
+    end
+    | Ind2 (r2) -> m.mem.(Int64.to_int m.regs.(rind r2))
+    | Ind3 (i3, r3) -> 
+      let i = begin match i3 with
+        | Lit(li) -> li
+        | Lbl(la) -> 0L
+      end in
+        Int64.sub m.regs.(rind r3) i
 
 let write_op op : operand -> value : int64 -> unit = 
 
