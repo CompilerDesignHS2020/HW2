@@ -395,9 +395,9 @@ let step (m:mach) : unit =
       | Retq -> 
         write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
         write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
+        
       | _ -> ()
 
-      | _ -> ()
     end
   | InsFrag -> () (* never read this you fool *)
   | Byte(b) -> () (* read data byte, this is illegal *)
