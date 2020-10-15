@@ -358,10 +358,23 @@ let step (m:mach) : unit =
         m.flags.fs <- result < 0L;
         m.flags.fz <- result = 0L;
         (* 
-      | Shlq 
+      
       | Sarq 
       | Shrq
       *)
+
+      (*Shlq AMT DEST: shift dest left by amt, read flag magic in docu *)
+      | Shlq ->
+        let amt = (Int64.to_int (read_op m (get_elem oplist 0))) in
+          let res = Int64.shift_left (read_op m (get_elem oplist 0)) amt in
+            let orig_dest_op = (get_elem oplist 1) in
+            write_op m orig_dest_op res;
+            if amt != 0 then
+              m.flags.fs <- res < 0L;
+              m.flags.fz <- res = 0L;
+              if amt = 1 then
+               let orig_dest_val = (read_op m orig_dest_op)in
+                m.flags.fo <- Int64.logand (Int64.shift_right_logical orig_dest_val 62) 1L = Int64.logand (Int64.shift_right_logical orig_dest_val 63) 1L;
 
       (* Jmp src1: rip = src1 *)
       | Jmp ->
@@ -395,7 +408,7 @@ let step (m:mach) : unit =
       | Retq -> 
         write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
         write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
-        
+
       | _ -> ()
 
     end
