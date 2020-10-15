@@ -143,7 +143,7 @@ let sbytes_of_data : data -> sbyte list = function
      [if !debug_simulator then print_endline @@ string_of_ins u; ...]
 
 *)
-let debug_simulator = ref false
+let debug_simulator = ref true
 
 (* Interpret a condition code with respect to the given flags. *)
 let interp_cnd {fo; fs; fz} : cnd -> bool = fun x -> 
@@ -251,196 +251,204 @@ let get_elem (l:operand list) (ind0:int) : operand =
 
 let step (m:mach) : unit =
   let inst_byte = m.mem.(get_mem_ind m.regs.( rind Rip)) in
-  match inst_byte with
-  | InsB0 (opcode, oplist) -> begin match opcode with
-      (* movq oplist0 to oplist1 *)
-      | Movq -> write_op m (get_elem oplist 1) (read_op m (get_elem oplist 0)) 
+  begin match inst_byte with
+    | InsB0 (opcode, oplist) -> (begin match opcode with
+        (* movq oplist0 to oplist1 *)
+        | Movq -> write_op m (get_elem oplist 1) (read_op m (get_elem oplist 0));
+          (* 
+          if !debug_simulator then print_endline @@ Int64.to_string(read_op m (get_elem oplist 0));
+          if !debug_simulator then print_endline @@ string_of_ins (opcode, oplist);
+          if !debug_simulator then print_endline @@ Int64.to_string(read_op m (get_elem oplist 1));
+          *)
 
-      (* pushq SRC: rsp = rsp - 8; move oplist0 to mem(rsp) *)
-      | Pushq ->
-        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
-        write_op m (Ind2(Rsp)) (read_op m (get_elem oplist 0)) 
+          
+          (* pushq SRC: rsp = rsp - 8; move oplist0 to mem(rsp) *)
+        | Pushq ->
+          write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
+          write_op m (Ind2(Rsp)) (read_op m (get_elem oplist 0)) 
 
-      (* popq DEST: move mem(rsp) to oplist0; rsp = rsp + 8 *)
-      | Popq ->
-        write_op m (get_elem oplist 0) (read_op m (Ind2(Rsp))); 
-        write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
+        (* popq DEST: move mem(rsp) to oplist0; rsp = rsp + 8 *)
+        | Popq ->
+          write_op m (get_elem oplist 0) (read_op m (Ind2(Rsp))); 
+          write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
 
-      (* leaq Ind DEST: store memory address saved in Ind to DEST *)
-      | Leaq -> 
-        begin match get_elem oplist 0 with
-          | Ind1(i) -> write_op m (get_elem oplist 1) (immception i)
-          | Ind2(r) -> write_op m (get_elem oplist 1) (read_op m (Reg(r)))
-          | Ind3(i,r) ->  write_op m (get_elem oplist 1) (Int64.add (read_op m (Reg(r))) (immception i))
-          | _ -> ()
-        end
-      (* Incq DEST: increment DEST by 1, set flags *)
-      | Incq ->
-        let open Int64_overflow in
-        let result = Int64_overflow.add (read_op m (get_elem oplist 0)) 1L in
-        write_op m (get_elem oplist 0) result.value;
-        m.flags.fo <- result.overflow;
-        m.flags.fs <- result.value < 0L;
-        m.flags.fz <- result.value = 0L;
-        write_op m (get_elem oplist 0) result.value
+        (* leaq Ind DEST: store memory address saved in Ind to DEST *)
+        | Leaq -> 
+          begin match get_elem oplist 0 with
+            | Ind1(i) -> write_op m (get_elem oplist 1) (immception i)
+            | Ind2(r) -> write_op m (get_elem oplist 1) (read_op m (Reg(r)))
+            | Ind3(i,r) ->  write_op m (get_elem oplist 1) (Int64.add (read_op m (Reg(r))) (immception i))
+            | _ -> ()
+          end
+        (* Incq DEST: increment DEST by 1, set flags *)
+        | Incq ->
+          let open Int64_overflow in
+          let result = Int64_overflow.add (read_op m (get_elem oplist 0)) 1L in
+          write_op m (get_elem oplist 0) result.value;
+          m.flags.fo <- result.overflow;
+          m.flags.fs <- result.value < 0L;
+          m.flags.fz <- result.value = 0L;
+          write_op m (get_elem oplist 0) result.value
 
-      (* Decq DEST: decrement DEST by 1, set flags *)
-      | Decq ->
-        let open Int64_overflow in
-        let result = Int64_overflow.sub (read_op m (get_elem oplist 0)) 1L in
-        write_op m (get_elem oplist 0) result.value;
-        m.flags.fo <- result.overflow;
-        m.flags.fs <- result.value < 0L;
-        m.flags.fz <- result.value = 0L;
+        (* Decq DEST: decrement DEST by 1, set flags *)
+        | Decq ->
+          let open Int64_overflow in
+          let result = Int64_overflow.sub (read_op m (get_elem oplist 0)) 1L in
+          write_op m (get_elem oplist 0) result.value;
+          m.flags.fo <- result.overflow;
+          m.flags.fs <- result.value < 0L;
+          m.flags.fz <- result.value = 0L;
 
-        (* Negq DEST: negates DEST, sets flags *)
-      | Negq ->
-        let open Int64_overflow in
-        let result = Int64_overflow.neg (read_op m (get_elem oplist 0)) in
-        write_op m (get_elem oplist 0) result.value;
-        m.flags.fo <- result.overflow;
-        m.flags.fs <- result.value < 0L;
-        m.flags.fz <- result.value = 0L;
+          (* Negq DEST: negates DEST, sets flags *)
+        | Negq ->
+          let open Int64_overflow in
+          let result = Int64_overflow.neg (read_op m (get_elem oplist 0)) in
+          write_op m (get_elem oplist 0) result.value;
+          m.flags.fo <- result.overflow;
+          m.flags.fs <- result.value < 0L;
+          m.flags.fz <- result.value = 0L;
 
-        (* Notq DEST: bitwise not on DEST *)
-      | Notq -> 
-        write_op m (get_elem oplist 0) (Int64.lognot (read_op m (get_elem oplist 0)))
+          (* Notq DEST: bitwise not on DEST *)
+        | Notq -> 
+          write_op m (get_elem oplist 0) (Int64.lognot (read_op m (get_elem oplist 0)))
 
-      (* Addq SRC DEST: dest <- dest + src; sets flags *)
-      | Addq ->
-        let open Int64_overflow in
-        let result = Int64_overflow.add (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
-        write_op m (get_elem oplist 1) result.value;
-        m.flags.fo <- result.overflow;
-        m.flags.fs <- result.value < 0L;
-        m.flags.fz <- result.value = 0L;
+        (* Addq SRC DEST: dest <- dest + src; sets flags *)
+        | Addq ->
+          let open Int64_overflow in
+          let result = Int64_overflow.add (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
+          write_op m (get_elem oplist 1) result.value;
+          m.flags.fo <- result.overflow;
+          m.flags.fs <- result.value < 0L;
+          m.flags.fz <- result.value = 0L;
 
-        (* Subq SRC DEST: dest <- dest - src; sets flags *)
-      | Subq ->
-        let open Int64_overflow in
-        let result = Int64_overflow.sub (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
-        write_op m (get_elem oplist 1) result.value;
-        m.flags.fo <- result.overflow;
-        m.flags.fs <- result.value < 0L;
-        m.flags.fz <- result.value = 0L;
+          (* Subq SRC DEST: dest <- dest - src; sets flags *)
+        | Subq ->
+          let open Int64_overflow in
+          let result = Int64_overflow.sub (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
+          write_op m (get_elem oplist 1) result.value;
+          m.flags.fo <- result.overflow;
+          m.flags.fs <- result.value < 0L;
+          m.flags.fz <- result.value = 0L;
 
-        (* Imulq SRC DEST: dest <- dest * src; sets flags *)
-      | Imulq ->
-        let open Int64_overflow in
-        let result = Int64_overflow.mul (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
-        write_op m (get_elem oplist 1) result.value;
-        m.flags.fo <- result.overflow;
-        m.flags.fs <- result.value < 0L;
-        m.flags.fz <- result.value = 0L;
+          (* Imulq SRC DEST: dest <- dest * src; sets flags *)
+        | Imulq ->
+          let open Int64_overflow in
+          let result = Int64_overflow.mul (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
+          write_op m (get_elem oplist 1) result.value;
+          m.flags.fo <- result.overflow;
+          m.flags.fs <- result.value < 0L;
+          m.flags.fz <- result.value = 0L;
 
-        (* Xorq SRC DEST: dest <- dest xor src; sets flags; OF flag always false *)
-      | Xorq ->
-        let result = Int64.logxor (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
-        write_op m (get_elem oplist 1) result;
-        m.flags.fo <- false;
-        m.flags.fs <- result < 0L;
-        m.flags.fz <- result = 0L;
-
-        (* Orq SRC DEST: dest <- dest or src; sets flags; OF flag always false *)
-
-      | Orq ->
-        let result = Int64.logor (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
-        write_op m (get_elem oplist 1) result;
-        m.flags.fo <- false;
-        m.flags.fs <- result < 0L;
-        m.flags.fz <- result = 0L;
-
-        (* Andq SRC DEST: dest <- dest and src; sets flags; OF flag always false *)
-      | Andq ->
-        let result = Int64.logand (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
-        write_op m (get_elem oplist 1) result;
-        m.flags.fo <- false;
-        m.flags.fs <- result < 0L;
-        m.flags.fz <- result = 0L;
-
-
-        (* Sarq AMT DEST dest <- dest >> amt; set flags if amt !=0; OF flag is true if amt == 1*)
-      | Sarq -> 
-        let amt = read_op m (get_elem oplist 0) in
-        let old_dest = read_op m (get_elem oplist 1) in
-        let result = Int64.shift_right old_dest (Int64.to_int amt) in 
-        if amt != 0L then (
+          (* Xorq SRC DEST: dest <- dest xor src; sets flags; OF flag always false *)
+        | Xorq ->
+          let result = Int64.logxor (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
+          write_op m (get_elem oplist 1) result;
+          m.flags.fo <- false;
           m.flags.fs <- result < 0L;
           m.flags.fz <- result = 0L;
-          if amt = 1L then
-            m.flags.fo <- false;
-        );
-        write_op m (get_elem oplist 1) result;
 
+          (* Orq SRC DEST: dest <- dest or src; sets flags; OF flag always false *)
 
-        (* Shrq AMT DEST: dest <- dest >> amt; set flags if amt !=0; OF flag is MSB of old dest if amt == 1 *)
-      | Shrq -> 
-        let amt = read_op m (get_elem oplist 0) in
-        let old_dest = read_op m (get_elem oplist 1) in
-        let result = Int64.shift_right_logical old_dest (Int64.to_int amt) in 
-        if amt != 0L then (
+        | Orq ->
+          let result = Int64.logor (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
+          write_op m (get_elem oplist 1) result;
+          m.flags.fo <- false;
           m.flags.fs <- result < 0L;
           m.flags.fz <- result = 0L;
-          if amt = 1L then
-            m.flags.fo <- (Int64.shift_right_logical old_dest 63) = 1L;
-        );
-        write_op m (get_elem oplist 1) result;
+
+          (* Andq SRC DEST: dest <- dest and src; sets flags; OF flag always false *)
+        | Andq ->
+          let result = Int64.logand (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
+          write_op m (get_elem oplist 1) result;
+          m.flags.fo <- false;
+          m.flags.fs <- result < 0L;
+          m.flags.fz <- result = 0L;
 
 
-        (*Shlq AMT DEST: shift dest left by amt, read flag magic in docu *)
-      | Shlq ->
-        let amt = (Int64.to_int (read_op m (get_elem oplist 0))) in
-        let res = Int64.shift_left (read_op m (get_elem oplist 0)) amt in
-        let orig_dest_op = (get_elem oplist 1) in
-        write_op m orig_dest_op res;
-        if amt != 0 then
-          m.flags.fs <- res < 0L;
-        m.flags.fz <- res = 0L;
-        if amt = 1 then
-          let orig_dest_val = (read_op m orig_dest_op)in
-          m.flags.fo <- Int64.logand (Int64.shift_right_logical orig_dest_val 62) 1L = Int64.logand (Int64.shift_right_logical orig_dest_val 63) 1L;
+          (* Sarq AMT DEST dest <- dest >> amt; set flags if amt !=0; OF flag is true if amt == 1*)
+        | Sarq -> 
+          let amt = read_op m (get_elem oplist 0) in
+          let old_dest = read_op m (get_elem oplist 1) in
+          let result = Int64.shift_right old_dest (Int64.to_int amt) in 
+          if amt != 0L then (
+            m.flags.fs <- result < 0L;
+            m.flags.fz <- result = 0L;
+            if amt = 1L then
+              m.flags.fo <- false;
+          );
+          write_op m (get_elem oplist 1) result;
 
-      (* Jmp src1: rip = src1 *)
-      | Jmp ->
-        write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
 
-      (* J CC src1: if CC holds then RIP = src1, else RIP -= 8 (at end of step fun it gets incremented) *)
-      | J(cnd) ->
-        if (interp_cnd m.flags cnd) then 
+          (* Shrq AMT DEST: dest <- dest >> amt; set flags if amt !=0; OF flag is MSB of old dest if amt == 1 *)
+        | Shrq -> 
+          let amt = read_op m (get_elem oplist 0) in
+          let old_dest = read_op m (get_elem oplist 1) in
+          let result = Int64.shift_right_logical old_dest (Int64.to_int amt) in 
+          if amt != 0L then (
+            m.flags.fs <- result < 0L;
+            m.flags.fz <- result = 0L;
+            if amt = 1L then
+              m.flags.fo <- (Int64.shift_right_logical old_dest 63) = 1L;
+          );
+          write_op m (get_elem oplist 1) result;
+
+
+          (*Shlq AMT DEST: shift dest left by amt, read flag magic in docu *)
+        | Shlq ->
+          let amt = (Int64.to_int (read_op m (get_elem oplist 0))) in
+          let res = Int64.shift_left (read_op m (get_elem oplist 0)) amt in
+          let orig_dest_op = (get_elem oplist 1) in
+          write_op m orig_dest_op res;
+          if amt != 0 then
+            m.flags.fs <- res < 0L;
+          m.flags.fz <- res = 0L;
+          if amt = 1 then
+            let orig_dest_val = (read_op m orig_dest_op)in
+            m.flags.fo <- Int64.logand (Int64.shift_right_logical orig_dest_val 62) 1L = Int64.logand (Int64.shift_right_logical orig_dest_val 63) 1L;
+
+            (* Jmp src1: rip = src1 *)
+        | Jmp ->
           write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
-        else
-          write_op m (Reg(Rip)) (Int64.sub (read_op m (Reg(Rip))) 8L)
 
-      (* cmpq src1 src2: do src2 - src1; change flags respectively *)
-      | Cmpq  ->
-        let open Int64_overflow in
-        let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
-        m.flags.fz <- (ret.value = 0L);
-        m.flags.fs <- (ret.value < 0L);
-        m.flags.fo <- ret.overflow
+        (* J CC src1: if CC holds then RIP = src1, else RIP -= 8 (at end of step fun it gets incremented) *)
+        | J(cnd) ->
+          if (interp_cnd m.flags cnd) then 
+            write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
+          else
+            write_op m (Reg(Rip)) (Int64.sub (read_op m (Reg(Rip))) 8L)
 
-      (* setb CC Dest: if CC holds then move 1 to DEST's lower byte, else move 0 there *)
-      | Set(cnd) ->
-        write_op m (get_elem oplist 0) (if (interp_cnd m.flags cnd) then 1L else 0L)
+        (* cmpq src1 src2: do src2 - src1; change flags respectively *)
+        | Cmpq  ->
+          let open Int64_overflow in
+          let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
+          m.flags.fz <- (ret.value = 0L);
+          m.flags.fs <- (ret.value < 0L);
+          m.flags.fo <- ret.overflow
 
-      (* Callq SRC: push rip to top of stack; rsp = rsp - 8; move SRC to rip*)
-      | Callq ->
-        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L);
-        write_op m (Ind2(Rsp)) (read_op m (Reg(Rip)));
-        write_op m (Reg(Rip)) (read_op m (get_elem oplist 0)) 
+        (* setb CC Dest: if CC holds then move 1 to DEST's lower byte, else move 0 there *)
+        | Set(cnd) ->
+          write_op m (get_elem oplist 0) (if (interp_cnd m.flags cnd) then 1L else 0L)
 
-      (* Retq: pop top of stack into rip; rsp = rsp + 8*)
-      | Retq -> 
-        write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
-        write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
+        (* Callq SRC: push rip to top of stack; rsp = rsp - 8; move SRC to rip*)
+        | Callq ->
+          write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L);
+          write_op m (Ind2(Rsp)) (read_op m (Reg(Rip)));
+          write_op m (Reg(Rip)) (read_op m (get_elem oplist 0)) 
 
-      | _ -> ()
+        (* Retq: pop top of stack into rip; rsp = rsp + 8*)
+        | Retq -> 
+          write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
+          write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
 
-    end
-  | InsFrag -> () (* never read this you fool *)
-  | Byte(b) -> () (* read data byte, this is illegal *)
+      end);
+      write_op m (Reg(Rip)) (Int64.add (read_op m (Reg(Rip))) 8L);
+
+    | InsFrag -> () (* never read this you fool *)
+    | Byte(b) -> () (* read data byte, this is illegal *)
+  end
 
 
+(* Increment instruction pointer *)
 
 
 
