@@ -341,9 +341,23 @@ let step (m:mach) : unit =
         m.flags.fs <- result < 0L;
         m.flags.fz <- result = 0L;
 
+        (* Orq SRC DEST: dest <- dest or src; sets flags; OF flag always false *)
+
+      | Orq ->
+        let result = Int64.logor (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
+        write_op m (get_elem oplist 1) result;
+        m.flags.fo <- false;
+        m.flags.fs <- result < 0L;
+        m.flags.fz <- result = 0L;
+
+        (* Andq SRC DEST: dest <- dest and src; sets flags; OF flag always false *)
+      | Andq ->
+        let result = Int64.logand (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
+        write_op m (get_elem oplist 1) result;
+        m.flags.fo <- false;
+        m.flags.fs <- result < 0L;
+        m.flags.fz <- result = 0L;
         (* 
-      | Orq
-      | Andq
       | Shlq 
       | Sarq 
       | Shrq
