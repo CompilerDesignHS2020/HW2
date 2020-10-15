@@ -282,9 +282,14 @@ let step (m:mach) : unit =
         m.flags.fo <- result.overflow;
         m.flags.fs <- result.value < 0L;
         m.flags.fz <- result.value = 0L;
-      | _ -> ()
+      | Decq ->
+      let open Int64_overflow in
+        let result = Int64_overflow.sub (read_op m (get_elem oplist 0)) 1L in
+        write_op m (get_elem oplist 0) result.value;
+        m.flags.fo <- result.overflow;
+        m.flags.fs <- result.value < 0L;
+        m.flags.fz <- result.value = 0L;
       (* 
-      | Decq 
       | Negq 
       | Notq
       | Addq 
@@ -319,6 +324,7 @@ let step (m:mach) : unit =
       | Retq -> 
         write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
         write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
+      | _ -> ()
 
     end
   | InsFrag -> () (* never read this you fool *)
