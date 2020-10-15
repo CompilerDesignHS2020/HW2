@@ -301,22 +301,27 @@ let step (m:mach) : unit =
       | Shlq 
       | Sarq 
       | Shrq
-      | Jmp 
-      | J 
-      | Cmpq  
-      | Set 
-      | Callq 
-      | Retq
       *)
+
+      (* Jmp src1: rip = src1 *)
+      | Jmp ->
+        write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
+
+      (* J CC src1: if CC holds then RIP = src1, else RIP -= 8 (at end of step fun it gets incremented) *)
+      | J(cnd) ->
+        if (interp_cnd m.flags cnd) then 
+          write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
+        else
+          write_op m (Reg(Rip)) (Int64.sub (read_op m (Reg(Rip))) 8L)
 
       (* cmpq src1 src2: do src2 - src1; change flags respectively *)
       | Cmpq  ->
-          let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
-            m.flags.fz <- (ret.value = 0L);
-            m.flags.fs <- (ret.value < 0L);
-            m.flags.fo <- ret.overflow
+        let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
+          m.flags.fz <- (ret.value = 0L);
+          m.flags.fs <- (ret.value < 0L);
+          m.flags.fo <- ret.overflow
 
-      (* setb CC Dest: if CC then move 1 to DEST's lower byte, else move 0 there *)
+      (* setb CC Dest: if CC holds then move 1 to DEST's lower byte, else move 0 there *)
       | Set(cnd) ->
         write_op m (get_elem oplist 0) (if (interp_cnd m.flags cnd) then 1L else 0L)
 
