@@ -276,26 +276,72 @@ let step (m:mach) : unit =
         end
       (* Incq DEST: increment DEST by 1, set flags *)
       | Incq ->
-      let open Int64_overflow in
+        let open Int64_overflow in
         let result = Int64_overflow.add (read_op m (get_elem oplist 0)) 1L in
         write_op m (get_elem oplist 0) result.value;
         m.flags.fo <- result.overflow;
         m.flags.fs <- result.value < 0L;
         m.flags.fz <- result.value = 0L;
+        write_op m (get_elem oplist 0) result.value
+
+      (* Decq DEST: decrement DEST by 1, set flags *)
       | Decq ->
-      let open Int64_overflow in
+        let open Int64_overflow in
         let result = Int64_overflow.sub (read_op m (get_elem oplist 0)) 1L in
         write_op m (get_elem oplist 0) result.value;
         m.flags.fo <- result.overflow;
         m.flags.fs <- result.value < 0L;
         m.flags.fz <- result.value = 0L;
-      (* 
-      | Negq 
-      | Notq
-      | Addq 
-      | Subq
-      | Imulq 
-      | Xorq 
+
+        (* Negq DEST: negates DEST, sets flags *)
+      | Negq ->
+        let open Int64_overflow in
+        let result = Int64_overflow.neg (read_op m (get_elem oplist 0)) in
+        write_op m (get_elem oplist 0) result.value;
+        m.flags.fo <- result.overflow;
+        m.flags.fs <- result.value < 0L;
+        m.flags.fz <- result.value = 0L;
+
+        (* Notq DEST: bitwise not on DEST *)
+      | Notq -> 
+        write_op m (get_elem oplist 0) (Int64.lognot (read_op m (get_elem oplist 0)))
+
+      (* Addq SRC DEST: dest <- dest + src; sets flags *)
+      | Addq ->
+        let open Int64_overflow in
+        let result = Int64_overflow.add (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
+        write_op m (get_elem oplist 1) result.value;
+        m.flags.fo <- result.overflow;
+        m.flags.fs <- result.value < 0L;
+        m.flags.fz <- result.value = 0L;
+
+        (* Subq SRC DEST: dest <- dest - src; sets flags *)
+      | Subq ->
+        let open Int64_overflow in
+        let result = Int64_overflow.sub (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
+        write_op m (get_elem oplist 1) result.value;
+        m.flags.fo <- result.overflow;
+        m.flags.fs <- result.value < 0L;
+        m.flags.fz <- result.value = 0L;
+
+        (* Imulq SRC DEST: dest <- dest * src; sets flags *)
+      | Imulq ->
+        let open Int64_overflow in
+        let result = Int64_overflow.mul (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
+        write_op m (get_elem oplist 1) result.value;
+        m.flags.fo <- result.overflow;
+        m.flags.fs <- result.value < 0L;
+        m.flags.fz <- result.value = 0L;
+
+        (* Xorq SRC DEST: dest <- dest xor src; sets flags; OF flag always false *)
+      | Xorq ->
+        let result = Int64.logxor (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in 
+        write_op m (get_elem oplist 1) result;
+        m.flags.fo <- false;
+        m.flags.fs <- result < 0L;
+        m.flags.fz <- result = 0L;
+
+        (* 
       | Orq
       | Andq
       | Shlq 
@@ -309,12 +355,12 @@ let step (m:mach) : unit =
       | Retq
       *)
 
-      (* cmpq src1 src2: do src2 - src1; change flags respectively *)
+        (* cmpq src1 src2: do src2 - src1; change flags respectively *)
       | Cmpq  ->
-          let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
-            m.flags.fz <- (ret.value = 0L);
-            m.flags.fs <- (ret.value < 0L);
-            m.flags.fo <- ret.overflow
+        let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
+        m.flags.fz <- (ret.value = 0L);
+        m.flags.fs <- (ret.value < 0L);
+        m.flags.fo <- ret.overflow
 
       (* setb CC Dest: if CC then move 1 to DEST's lower byte, else move 0 there *)
       | Set(cnd) ->
