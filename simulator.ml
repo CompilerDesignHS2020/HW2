@@ -275,7 +275,6 @@ let step (m:mach) : unit =
       | Incq ->
       
       write_op m (get_elem oplist 0) (Int64.add (read_op m (get_elem oplist 0)) 1L)
-      | _ -> ()
       (* 
       | Decq 
       | Negq 
@@ -297,14 +296,20 @@ let step (m:mach) : unit =
       | Retq
       *)
 
+      (* cmpq src1 src2: do src2 - src1; change flags respectively *)
+      | Cmpq  ->
+          let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
+            m.flags.fz <- (ret.value = 0L);
+            m.flags.fs <- (ret.value < 0L);
+            m.flags.fo <- ret.overflow
+
+      (* setb CC Dest: if CC then move 1 to DEST's lower byte, else move 0 there *)
       | Set(cnd) ->
-        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
-        write_op m (Ind2(Rsp)) (read_op m (Reg(Rip)));
-        write_op m (Reg(Rip)) (read_op m (get_elem oplist 0)) 
+        write_op m (get_elem oplist 0) (if (interp_cnd m.flags cnd) then 1L else 0L)
 
       (* Callq SRC: push rip to top of stack; rsp = rsp - 8; move SRC to rip*)
       | Callq ->
-        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
+        write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L);
         write_op m (Ind2(Rsp)) (read_op m (Reg(Rip)));
         write_op m (Reg(Rip)) (read_op m (get_elem oplist 0)) 
 
@@ -313,6 +318,7 @@ let step (m:mach) : unit =
         write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
         write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
 
+      | _ -> ()
     end
   | InsFrag -> () (* never read this you fool *)
   | Byte(b) -> () (* read data byte, this is illegal *)
