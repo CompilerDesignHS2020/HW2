@@ -6,6 +6,9 @@
 *)
 
 open X86
+(*
+open Int64_overflow
+*)
 
 (* simulator machine state -------------------------------------------------- *)
 
@@ -273,8 +276,12 @@ let step (m:mach) : unit =
         end
       (* Incq DEST: increment DEST by 1, set flags *)
       | Incq ->
-      
-      write_op m (get_elem oplist 0) (Int64.add (read_op m (get_elem oplist 0)) 1L)
+      let open Int64_overflow in
+        let result = Int64_overflow.add (read_op m (get_elem oplist 0)) 1L in
+        write_op m (get_elem oplist 0) result.value;
+        m.flags.fo <- result.overflow;
+        m.flags.fs <- result.value < 0L;
+        m.flags.fz <- result.value = 0L;
       | _ -> ()
       (* 
       | Decq 
