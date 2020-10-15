@@ -359,11 +359,27 @@ let step (m:mach) : unit =
         m.flags.fz <- result = 0L;
         (* 
       | Shlq 
-      | Sarq 
-      | Shrq
+      (*  *)
+      | Sarq -> 
       *)
 
-      (* Jmp src1: rip = src1 *)
+        (* Shrq AMT DEST: dest <- dest >> amt; set flags if amt !=0; OF flag only true if amt == 1 *)
+      | Shrq -> 
+        let amt = read_op m (get_elem oplist 0) in
+        let old_dest = read_op m (get_elem oplist 1) in
+        let result = Int64.shift_right_logical old_dest (Int64.to_int amt) in 
+        if amt != 0L then (
+          m.flags.fs <- result < 0L;
+          m.flags.fz <- result = 0L;
+          if amt = 1L then
+            m.flags.fo <- (Int64.shift_right_logical old_dest 63) = 1L;
+        );
+
+
+        write_op m (get_elem oplist 1) result;
+
+
+        (* Jmp src1: rip = src1 *)
       | Jmp ->
         write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
 
@@ -376,10 +392,11 @@ let step (m:mach) : unit =
 
       (* cmpq src1 src2: do src2 - src1; change flags respectively *)
       | Cmpq  ->
+        let open Int64_overflow in
         let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
-          m.flags.fz <- (ret.value = 0L);
-          m.flags.fs <- (ret.value < 0L);
-          m.flags.fo <- ret.overflow
+        m.flags.fz <- (ret.value = 0L);
+        m.flags.fs <- (ret.value < 0L);
+        m.flags.fo <- ret.overflow
 
       (* setb CC Dest: if CC holds then move 1 to DEST's lower byte, else move 0 there *)
       | Set(cnd) ->
@@ -395,7 +412,7 @@ let step (m:mach) : unit =
       | Retq -> 
         write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
         write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
-        
+
       | _ -> ()
 
     end
