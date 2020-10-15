@@ -261,7 +261,7 @@ let step (m:mach) : unit =
           if !debug_simulator then print_endline @@ Int64.to_string(read_op m (get_elem oplist 1));
           *)
 
-          
+
           (* pushq SRC: rsp = rsp - 8; move oplist0 to mem(rsp) *)
         | Pushq ->
           write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L); 
@@ -396,7 +396,7 @@ let step (m:mach) : unit =
           (*Shlq AMT DEST: shift dest left by amt, read flag magic in docu *)
         | Shlq ->
           let amt = (Int64.to_int (read_op m (get_elem oplist 0))) in
-          let res = Int64.shift_left (read_op m (get_elem oplist 0)) amt in
+          let res = Int64.shift_left (read_op m (get_elem oplist 1)) amt in
           let orig_dest_op = (get_elem oplist 1) in
           write_op m orig_dest_op res;
           if amt != 0 then
@@ -420,7 +420,7 @@ let step (m:mach) : unit =
         (* cmpq src1 src2: do src2 - src1; change flags respectively *)
         | Cmpq  ->
           let open Int64_overflow in
-          let ret = Int64_overflow.sub (read_op m (get_elem oplist 0)) (read_op m (get_elem oplist 1)) in
+          let ret = Int64_overflow.sub (read_op m (get_elem oplist 1)) (read_op m (get_elem oplist 0)) in
           m.flags.fz <- (ret.value = 0L);
           m.flags.fs <- (ret.value < 0L);
           m.flags.fo <- ret.overflow
