@@ -501,19 +501,29 @@ let rec split_text_data (remaining_list: elem list) ((text_only_list, data_only_
    HINT: List.fold_left and List.fold_right are your friends.
 *)
 
-type sym = {lbl: string; addr: int64; size: int64}
+type sym = (string * int64 * int64)
 
-let calc_text_elem_size (cur_elem: elem) : int64 = 0L
+let calc_data_size (cur_size: int64) (cur_data: data) : int64 =
+  match cur_data with
+   | Asciz(str) -> Int64.add cur_size (Int64.of_int ((String.length str)+1))
+   | Quad(q) -> Int64.add cur_size 8L
+
+let calc_elem_size (cur_elem: elem) : int64 = 
+  match cur_elem.asm with
+  | Text(insts)-> Int64.mul 8L (Int64.of_int (List.length insts))
+  | Data(datas) -> List.fold_left calc_data_size 0L datas
 
 let create_sym_entry (incomplete_list :sym list) (cur_elem: elem) : (sym list) = 
- match incomplete_list with
-  | [] -> [{cur_elem.lbl; mem_bot; calc_text_elem_size cur_elem }]
-  | h::tl -> [{cur_elem.lbl, h.mem, }]@incomplete_list
+  match incomplete_list with
+  | [] -> [(cur_elem.lbl, mem_bot, calc_elem_size cur_elem)]
+  | h::tl -> let (_,last_mem_addr,_) = h in 
+    let cur_size = calc_elem_size cur_elem in
+    [(cur_elem.lbl, Int64.add last_mem_addr cur_size , cur_size )]@incomplete_list
 
 
 let assemble (p:prog) : exec =
   let (text_only_list, data_only_list) = split_text_data p ([],[]) in
-    let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list
+  let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list
 
 
 
