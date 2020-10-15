@@ -359,11 +359,21 @@ let step (m:mach) : unit =
         m.flags.fz <- result = 0L;
 
 
-        (*  *)
+        (* Sarq AMT DEST dest <- dest >> amt; set flags if amt !=0; OF flag is true if amt == 1*)
       | Sarq -> 
+        let amt = read_op m (get_elem oplist 0) in
+        let old_dest = read_op m (get_elem oplist 1) in
+        let result = Int64.shift_right old_dest (Int64.to_int amt) in 
+        if amt != 0L then (
+          m.flags.fs <- result < 0L;
+          m.flags.fz <- result = 0L;
+          if amt = 1L then
+            m.flags.fo <- false;
+        );
+        write_op m (get_elem oplist 1) result;
 
 
-        (* Shrq AMT DEST: dest <- dest >> amt; set flags if amt !=0; OF flag only true if amt == 1 *)
+        (* Shrq AMT DEST: dest <- dest >> amt; set flags if amt !=0; OF flag is MSB of old dest if amt == 1 *)
       | Shrq -> 
         let amt = read_op m (get_elem oplist 0) in
         let old_dest = read_op m (get_elem oplist 1) in
@@ -374,12 +384,7 @@ let step (m:mach) : unit =
           if amt = 1L then
             m.flags.fo <- (Int64.shift_right_logical old_dest 63) = 1L;
         );
-
-
         write_op m (get_elem oplist 1) result;
-
-
-        (* Jmp src1: rip = src1 *)
 
 
         (*Shlq AMT DEST: shift dest left by amt, read flag magic in docu *)
@@ -395,7 +400,7 @@ let step (m:mach) : unit =
           let orig_dest_val = (read_op m orig_dest_op)in
           m.flags.fo <- Int64.logand (Int64.shift_right_logical orig_dest_val 62) 1L = Int64.logand (Int64.shift_right_logical orig_dest_val 63) 1L;
 
-          (* Jmp src1: rip = src1 *)
+      (* Jmp src1: rip = src1 *)
       | Jmp ->
         write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
 
