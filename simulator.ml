@@ -476,8 +476,18 @@ exception Undefined_sym of lbl
 (* Assemble should raise this when a label is defined more than once *)
 exception Redefined_sym of lbl
 
+
+(* extracts all elems containing text into text_only_list and all elems containing data into data_only_list  *)
+let rec split_text_data (remaining_list: elem list) ((text_only_list, data_only_list) : (elem list * elem list)) : (elem list * elem list) = 
+  match remaining_list with
+  | [] ->  (text_only_list, data_only_list)
+  | h::tl -> begin match h.asm with 
+      | Text(ins) -> split_text_data tl (text_only_list@[h], data_only_list)
+      | Data(data) -> split_text_data tl (text_only_list, data_only_list@[h])
+    end 
+
 (* Convert an X86 program into an object file:
-   - separate the text and data segments
+   + separate the text and data segments
    - compute the size of each segment
       Note: the size of an Asciz string section is (1 + the string length)
             due to the null terminator
@@ -490,8 +500,33 @@ exception Redefined_sym of lbl
 
    HINT: List.fold_left and List.fold_right are your friends.
 *)
+
+type sym = (string * int64 * int64)
+
+let calc_data_size (cur_size: int64) (cur_data: data) : int64 =
+  match cur_data with
+   | Asciz(str) -> Int64.add cur_size (Int64.of_int ((String.length str)+1))
+   | Quad(q) -> Int64.add cur_size 8L
+
+let calc_elem_size (cur_elem: elem) : int64 = 
+  match cur_elem.asm with
+  | Text(insts)-> Int64.mul 8L (Int64.of_int (List.length insts))
+  | Data(datas) -> List.fold_left calc_data_size 0L datas
+
+let create_sym_entry (incomplete_list :sym list) (cur_elem: elem) : (sym list) = 
+  match incomplete_list with
+  | [] -> [(cur_elem.lbl, mem_bot, calc_elem_size cur_elem)]
+  | h::tl -> let (_,last_mem_addr,_) = h in 
+    let cur_size = calc_elem_size cur_elem in
+    [(cur_elem.lbl, Int64.add last_mem_addr cur_size , cur_size )]@incomplete_list
+
+
 let assemble (p:prog) : exec =
-  failwith "assemble unimplemented"
+  let (text_only_list, data_only_list) = split_text_data p ([],[]) in
+  let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list
+
+
+
 
 (* Convert an object file into an executable machine state. 
     - allocate the mem array
