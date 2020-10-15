@@ -476,6 +476,15 @@ exception Undefined_sym of lbl
 (* Assemble should raise this when a label is defined more than once *)
 exception Redefined_sym of lbl
 
+
+(* extracts all elems containing text into text_only_list and all elems containing data into data_only_list  *)
+let rec split_text_data ({ lbl: lbl; global: bool; asm: asm }::other_elements: elem list) (text_only_list: elem list) (data_only_list: elem list) : (elem list * elem list) = 
+  
+  match asm with
+  | Text(ins) -> split_text_data other_elements (text_only_list@[{ lbl: lbl; global: bool; asm: asm }]) data_only_list
+  | Data(data) -> split_text_data other_elements text_only_list (data_only_list@[{ lbl: lbl; global: bool; asm: asm }])
+
+
 (* Convert an X86 program into an object file:
    - separate the text and data segments
    - compute the size of each segment
@@ -490,9 +499,9 @@ exception Redefined_sym of lbl
 
    HINT: List.fold_left and List.fold_right are your friends.
 *)
-let assemble (p:prog) : exec =
-  failwith "assemble unimplemented"
 
+let assemble (p:prog) : exec =
+  let all_text = split_text_data p []
 (* Convert an object file into an executable machine state. 
     - allocate the mem array
     - set up the memory state by writing the symbolic bytes to the 
