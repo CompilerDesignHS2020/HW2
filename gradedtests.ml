@@ -420,6 +420,128 @@ let cc_lea = test_machine
   ;InsB0 (Movq, [~%R08; Ind2 Rcx]);InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag]
 
 
+let shr =
+  test_machine
+    [
+      InsB0 (Movq, [ ~$16; ~%Rax ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Movq, [ ~$16; stack_offset 0L ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Movq, [ ~$(-16); stack_offset (-8L) ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Movq, [ ~$3; ~%Rcx ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Shrq, [ ~$1; ~%Rax ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Shrq, [ ~%Rcx; stack_offset 0L ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Shrq, [ ~%Rcx; stack_offset (-8L) ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+    ]
+
+let sar =
+  test_machine
+    [
+      InsB0 (Movq, [ ~$16; ~%Rax ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Movq, [ ~$16; stack_offset 0L ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Movq, [ ~$(-16); stack_offset (-8L) ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Movq, [ ~$3; ~%Rcx ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Sarq, [ ~$1; ~%Rax ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Sarq, [ ~%Rcx; stack_offset 0L ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsB0 (Sarq, [ ~%Rcx; stack_offset (-8L) ]);
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+      InsFrag;
+    ]
+
 
 let hidden_condition_flag_set_tests = [
 ]
@@ -498,8 +620,30 @@ let hard_tests : suite = [
 ]
 
 
+let bit_manipulation =
+  [
+    ( "shr",
+      machine_test "rax=8 *65528=2 *65520=0x2000000000000000" 7 shr
+        (fun m -> m.regs.(rind Rax) = 8L
+                  && int64_of_sbytes (sbyte_list m.mem (mem_size - 8)) = 2L
+                  && int64_of_sbytes (sbyte_list m.mem (mem_size - 16))
+                     = 2305843009213693950L) );
+    ( "sar",
+      machine_test "rax=8 *65528=2 *65520=-2" 7 sar (fun m -> m.regs.(rind Rax) = 8L
+                                                                          && int64_of_sbytes (sbyte_list m.mem (mem_size - 8)) = 2L
+                                                                          && int64_of_sbytes (sbyte_list m.mem (mem_size - 16))
+                                                                             = -2L) );
+  ]
+
+
+let provided_tests : suite = [ Test ("Bit manipulation", bit_manipulation) ]
+
+
 let graded_tests : suite =
   timeout_suite 1 (
   easy_tests @
   medium_tests @
-  hard_tests)
+  hard_tests @
+  provided_tests)
+
+
