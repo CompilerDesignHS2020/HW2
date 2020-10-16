@@ -503,16 +503,31 @@ let rec split_text_data (remaining_list: elem list) ((text_only_list, data_only_
 
 type sym = (string * int64 * int64)
 
+(* calculates data size:
+- for strings: string.length + 1, because strings terminate with 0
+- for quads 8 bytes
+*)
 let calc_data_size (cur_size: int64) (cur_data: data) : int64 =
   match cur_data with
   | Asciz(str) -> Int64.add cur_size (Int64.of_int ((String.length str)+1))
   | Quad(q) -> Int64.add cur_size 8L
 
+(* calculates element size:
+- for text 8 bytes per element in list "insts"
+- for data use calc_data size to add up all sizes of data
+*)
 let calc_elem_size (cur_elem: elem) : int64 = 
   match cur_elem.asm with
   | Text(insts)-> Int64.mul 8L (Int64.of_int (List.length insts))
   | Data(datas) -> List.fold_left calc_data_size 0L datas
 
+(* 
+adds element to sym list, for entry in sym_list:
+- lbl = lbl of elem
+- adress = (adress of previous entry) + (size of previous entry) 
+(- if first item in list, adress = mem_bot = 0x400000L)
+- site = elem size (use function calc_elem_size)
+*)
 let create_sym_entry (incomplete_list :sym list) (cur_elem: elem) : (sym list) = 
   match incomplete_list with
   | [] -> [(cur_elem.lbl, mem_bot, calc_elem_size cur_elem)]
@@ -520,6 +535,11 @@ let create_sym_entry (incomplete_list :sym list) (cur_elem: elem) : (sym list) =
     let cur_size = calc_elem_size cur_elem in
     [(cur_elem.lbl, Int64.add last_mem_addr last_sym_size , cur_size )]@incomplete_list
 
+(* 
+returns adress of top element of sym list:
+- if list not empty: adress = (adress of previous elem) + (size of previous elem)
+- if list empty:  mem_bot = 0x400000L
+*)
 let calc_data_bottom_addr (text_sym_tbl: sym list) : int64 =
   match text_sym_tbl with
   | [] -> mem_bot
@@ -531,6 +551,7 @@ let rec sbytes_of_data_list (datas: data list) : sbyte list =
   | [] -> []
   | h::tl -> (sbytes_of_data h)@(sbytes_of_data_list tl)
 
+(* search for a label in sym_table, if found return adress, else raise exception *)
 let lbl_to_lit (wanted_lbl: string) (init_sym_table : sym list) : int64 =
   let rec rec_lbl_to_lit sym_table = 
     match sym_table with
@@ -543,10 +564,7 @@ let lbl_to_lit (wanted_lbl: string) (init_sym_table : sym list) : int64 =
   in 
   rec_lbl_to_lit init_sym_table
 
-(*
-converts elem list of type ins to sbyte list. 
-calls element-wise "sbytes_of_ins"
- *)
+(* if there is a label in ins, replace it with address from sym list *)
 let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins = 
 
   let rec replace_lbl_from_operand_list (op_list: operand list) : operand list = 
@@ -573,7 +591,7 @@ let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins =
 (*
 converts elem list of type ins to sbyte list. 
 - calls element-wise "sbytes_of_ins", if theres is 
-
+- checks every inst-elem if theres is a label
  *)
 let sbytes_of_ins_list (init_inst_list: ins list) (sym_tbl: sym list) : sbyte list =
   let rec rec_sbytes_of_ins_list insts =
