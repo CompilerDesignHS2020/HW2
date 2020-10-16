@@ -533,16 +533,25 @@ let rec sbytes_of_data_list (datas: data list) : sbyte list =
 let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins = 
 
   let rec replace_lbl_from_operand_list (op_list: operand list) : operand list = 
-    
+    let replace_lbl_from_operand (op: operand) : operand =  
+      match op with
+        | Imm(Lit(imm)) -> Imm(Lit(imm))
+        | Imm(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
+        | Reg(r) -> Reg(r)
+        | Ind1(Lit(imm)) -> Imm(Lit(imm))
+        | Ind1(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
+        | Ind2(r) -> Ind2(r)
+        | Ind3(Lit(imm), r) -> Ind3(Lit(imm), r)
+        | Ind3(Lbl(lbl), r) -> Ind3(Lit(lbl_to_lit lbl sym_tbl), r)
+    in
 
     match op_list with
       | [] -> []
-      | h::tl -> 
-
+      | h::tl -> [replace_lbl_from_operand h]@(replace_lbl_from_operand_list tl)
   in
 
   let (opcode, operands) = cur_ins in
-  (opcode, replace_lbl_from_operand_list ) 
+  (opcode, replace_lbl_from_operand_list operands) 
 
 let sbytes_of_ins_list (init_inst_list: ins list) (sym_tbl: sym list) : sbyte list =
   let rec rec_sbytes_of_ins_list = insts in
