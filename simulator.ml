@@ -525,6 +525,7 @@ let calc_data_bottom_addr (text_sym_tbl: sym list) : int64 =
   | [] -> mem_bot
   | h::tl -> let ( _, data_bottom_addr ,size_of_last_symbol) = h in Int64.add data_bottom_addr size_of_last_symbol
 
+(* converts data list element-wise to sbyte list*)
 let rec sbytes_of_data_list (datas: data list) : sbyte list =
   match datas with
   | [] -> []
@@ -542,6 +543,10 @@ let lbl_to_lit (wanted_lbl: string) (init_sym_table : sym list) : int64 =
   in 
   rec_lbl_to_lit init_sym_table
 
+(*
+converts elem list of type ins to sbyte list. 
+calls element-wise "sbytes_of_ins"
+ *)
 let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins = 
 
   let rec replace_lbl_from_operand_list (op_list: operand list) : operand list = 
@@ -565,6 +570,11 @@ let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins =
   let (opcode, operands) = cur_ins in
   (opcode, replace_lbl_from_operand_list operands) 
 
+(*
+converts elem list of type ins to sbyte list. 
+- calls element-wise "sbytes_of_ins", if theres is 
+
+ *)
 let sbytes_of_ins_list (init_inst_list: ins list) (sym_tbl: sym list) : sbyte list =
   let rec rec_sbytes_of_ins_list insts =
     match insts with
@@ -576,8 +586,8 @@ let sbytes_of_ins_list (init_inst_list: ins list) (sym_tbl: sym list) : sbyte li
 
 (*
 creates an sbyte from an elem. 
-- distinguishes between data and 
-- calls element-wise fun "create_sbyte_from_elem"
+if text, we need to take care of labels in text
+if data, convert to sbytes with "sybtes_of_data_list" 
  *)
 let create_sbyte_from_elem (cur_elem: elem) (sym_tbl: sym list) : sbyte list = 
   match cur_elem.asm with 
@@ -587,7 +597,7 @@ let create_sbyte_from_elem (cur_elem: elem) (sym_tbl: sym list) : sbyte list =
 (*
 creates an sbyte list from  elem list. 
 - elem list is text only or data only
-- calls element-wise fun "create_sbyte_from_elem"
+- call element-wise fun "create_sbyte_from_elem"
  *)
 let rec create_seg (element_list: elem list) (sym_tbl: sym list) : sbyte list =
   match element_list with
