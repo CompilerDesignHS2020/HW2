@@ -533,12 +533,12 @@ let rec sbytes_of_data_list (datas: data list) : sbyte list =
 let lbl_to_lit (wanted_lbl: string) (init_sym_table : sym list) : int64 =
   let rec rec_lbl_to_lit sym_table = 
     match sym_table with
-      | [] -> raise (Undefined_sym wanted_lbl)
-      | h::tl -> let (lbl,addr,_) = h in
-        if lbl = wanted_lbl then 
-          addr
-        else 
-          rec_lbl_to_lit tl
+    | [] -> raise (Undefined_sym wanted_lbl)
+    | h::tl -> let (lbl,addr,_) = h in
+      if lbl = wanted_lbl then 
+        addr
+      else 
+        rec_lbl_to_lit tl
   in 
   rec_lbl_to_lit init_sym_table
 
@@ -547,19 +547,19 @@ let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins =
   let rec replace_lbl_from_operand_list (op_list: operand list) : operand list = 
     let replace_lbl_from_operand (op: operand) : operand =  
       match op with
-        | Imm(Lit(imm)) -> Imm(Lit(imm))
-        | Imm(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
-        | Reg(r) -> Reg(r)
-        | Ind1(Lit(imm)) -> Imm(Lit(imm))
-        | Ind1(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
-        | Ind2(r) -> Ind2(r)
-        | Ind3(Lit(imm), r) -> Ind3(Lit(imm), r)
-        | Ind3(Lbl(lbl), r) -> Ind3(Lit(lbl_to_lit lbl sym_tbl), r)
+      | Imm(Lit(imm)) -> Imm(Lit(imm))
+      | Imm(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
+      | Reg(r) -> Reg(r)
+      | Ind1(Lit(imm)) -> Imm(Lit(imm))
+      | Ind1(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
+      | Ind2(r) -> Ind2(r)
+      | Ind3(Lit(imm), r) -> Ind3(Lit(imm), r)
+      | Ind3(Lbl(lbl), r) -> Ind3(Lit(lbl_to_lit lbl sym_tbl), r)
     in
 
     match op_list with
-      | [] -> []
-      | h::tl -> [replace_lbl_from_operand h]@(replace_lbl_from_operand_list tl)
+    | [] -> []
+    | h::tl -> [replace_lbl_from_operand h]@(replace_lbl_from_operand_list tl)
   in
 
   let (opcode, operands) = cur_ins in
@@ -601,7 +601,8 @@ let assemble (p:prog) : exec =
   let sym_tbl = List.fold_left create_sym_entry text_sym_tbl data_only_list in
   let text_seg = create_seg text_only_list sym_tbl in
   let data_seg = create_seg data_only_list sym_tbl in
-  let 
+  let data_bottom_addr = calc_data_bottom_addr text_sym_tbl in
+  {entry = lbl_to_lit "main" sym_tbl; text_pos = mem_bot; data_pos = data_bottom_addr;  text_seg = text_seg; data_seg = data_seg}
 
 
 (* Convert an object file into an executable machine state. 
