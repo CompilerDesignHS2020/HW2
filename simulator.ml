@@ -531,24 +531,47 @@ let rec sbytes_of_data_list (datas: data list) : sbyte list =
   | h::tl -> (sbytes_of_data h)@(sbytes_of_data_list tl)
 
 let lbl_to_lit (wanted_lbl: string) (init_sym_table : sym list) : int64 =
-  let rec rec_lbl_to_lit sym_table in
+  let rec rec_lbl_to_lit sym_table = 
     match sym_table with
-      | [] -> Undefined_symbol
+      | [] -> raise (Undefined_sym wanted_lbl)
       | h::tl -> let (lbl,addr,_) = h in
         if lbl = wanted_lbl then 
           addr
         else 
           rec_lbl_to_lit tl
+  in 
   rec_lbl_to_lit init_sym_table
 
 let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins = 
 
+  let rec replace_lbl_from_operand_list (op_list: operand list) : operand list = 
+    let replace_lbl_from_operand (op: operand) : operand =  
+      match op with
+        | Imm(Lit(imm)) -> Imm(Lit(imm))
+        | Imm(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
+        | Reg(r) -> Reg(r)
+        | Ind1(Lit(imm)) -> Imm(Lit(imm))
+        | Ind1(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
+        | Ind2(r) -> Ind2(r)
+        | Ind3(Lit(imm), r) -> Ind3(Lit(imm), r)
+        | Ind3(Lbl(lbl), r) -> Ind3(Lit(lbl_to_lit lbl sym_tbl), r)
+    in
+
+    match op_list with
+      | [] -> []
+      | h::tl -> [replace_lbl_from_operand h]@(replace_lbl_from_operand_list tl)
+  in
+
+  let (opcode, operands) = cur_ins in
+  (opcode, replace_lbl_from_operand_list operands) 
 
 let sbytes_of_ins_list (init_inst_list: ins list) (sym_tbl: sym list) : sbyte list =
-  let rec rec_sbytes_of_ins_list = insts in
+  let rec rec_sbytes_of_ins_list insts =
     match insts with
     | [] -> []
     | h::tl -> (sbytes_of_ins (replace_lbl h sym_tbl))@(rec_sbytes_of_ins_list tl)
+
+  in
   rec_sbytes_of_ins_list init_inst_list
 
 (*
@@ -558,7 +581,7 @@ creates an sbyte from an elem.
  *)
 let create_sbyte_from_elem (cur_elem: elem) (sym_tbl: sym list) : sbyte list = 
   match cur_elem.asm with 
-  | Text(insts) -> 
+  | Text(insts) -> sbytes_of_ins_list insts sym_tbl
   | Data(datas) -> sbytes_of_data_list datas
 
 (*
@@ -566,17 +589,19 @@ creates an sbyte list from  elem list.
 - elem list is text only or data only
 - calls element-wise fun "create_sbyte_from_elem"
  *)
-let rec create_text_seg (text_only_list: elem list) (sym_tbl: sym list) : sbyte list =
-  match text_only_list with
+let rec create_seg (element_list: elem list) (sym_tbl: sym list) : sbyte list =
+  match element_list with
   | [] -> []
   | h::tl -> let sbytes_of_head = create_sbyte_from_elem h sym_tbl in 
-    sbytes_of_head@(create_sym_entry tl sym_tbl)
+    sbytes_of_head@(create_seg tl sym_tbl)
 
 let assemble (p:prog) : exec =
   let (text_only_list, data_only_list) = split_text_data p ([],[]) in
   let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list in
   let sym_tbl = List.fold_left create_sym_entry text_sym_tbl data_only_list in
-  let text_seg = List.fold_left 
+  let text_seg = create_seg text_only_list sym_tbl in
+  let data_seg = create_seg data_only_list sym_tbl in
+  let 
 
 
 (* Convert an object file into an executable machine state. 
