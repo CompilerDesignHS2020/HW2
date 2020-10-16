@@ -505,8 +505,8 @@ type sym = (string * int64 * int64)
 
 let calc_data_size (cur_size: int64) (cur_data: data) : int64 =
   match cur_data with
-   | Asciz(str) -> Int64.add cur_size (Int64.of_int ((String.length str)+1))
-   | Quad(q) -> Int64.add cur_size 8L
+  | Asciz(str) -> Int64.add cur_size (Int64.of_int ((String.length str)+1))
+  | Quad(q) -> Int64.add cur_size 8L
 
 let calc_elem_size (cur_elem: elem) : int64 = 
   match cur_elem.asm with
@@ -520,26 +520,30 @@ let create_sym_entry (incomplete_list :sym list) (cur_elem: elem) : (sym list) =
     let cur_size = calc_elem_size cur_elem in
     [(cur_elem.lbl, Int64.add last_mem_addr cur_size , cur_size )]@incomplete_list
 
+let calc_data_bottom_addr (text_sym_tbl: sym list) : int64 =
+  match text_sym_tbl with
+  | [] -> mem_bot
+  | h::tl -> let ( _, data_bottom_addr ,_) = h in data_bottom_addr
 
 let assemble (p:prog) : exec =
   let (text_only_list, data_only_list) = split_text_data p ([],[]) in
-  let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list
+  let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list in
+  let data_bottom_addr = calc_data_bottom_addr text_sym_tbl in
 
 
 
+  (* Convert an object file into an executable machine state. 
+      - allocate the mem array
+      - set up the memory state by writing the symbolic bytes to the 
+        appropriate locations 
+      - create the inital register state
+        - initialize rip to the entry point address
+        - initializes rsp to the last word in memory 
+        - the other registers are initialized to 0
+      - the condition code flags start as 'false'
 
-(* Convert an object file into an executable machine state. 
-    - allocate the mem array
-    - set up the memory state by writing the symbolic bytes to the 
-      appropriate locations 
-    - create the inital register state
-      - initialize rip to the entry point address
-      - initializes rsp to the last word in memory 
-      - the other registers are initialized to 0
-    - the condition code flags start as 'false'
-
-   Hint: The Array.make, Array.blit, and Array.of_list library functions 
-   may be of use.
-*)
-let load {entry; text_pos; data_pos; text_seg; data_seg} : mach = 
-  failwith "load unimplemented"
+     Hint: The Array.make, Array.blit, and Array.of_list library functions 
+     may be of use.
+  *)
+  let load {entry; text_pos; data_pos; text_seg; data_seg} : mach = 
+    failwith "load unimplemented"
