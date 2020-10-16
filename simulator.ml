@@ -532,6 +532,17 @@ let rec sbytes_of_data_list (datas: data list) : sbyte list =
 
 let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins = 
 
+  let rec replace_lbl_from_operand_list (op_list: operand list) : operand list = 
+    
+
+    match op_list with
+      | [] -> []
+      | h::tl -> 
+
+  in
+
+  let (opcode, operands) = cur_ins in
+  (opcode, replace_lbl_from_operand_list ) 
 
 let rec sbytes_of_ins_list (insts: ins list) (sym_tbl: sym list) : sbyte list =
   match insts with
