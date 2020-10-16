@@ -523,7 +523,7 @@ let create_sym_entry (incomplete_list :sym list) (cur_elem: elem) : (sym list) =
 let calc_data_bottom_addr (text_sym_tbl: sym list) : int64 =
   match text_sym_tbl with
   | [] -> mem_bot
-  | h::tl -> let ( _, data_bottom_addr ,_) = h in data_bottom_addr
+  | h::tl -> let ( _, data_bottom_addr ,size_of_last_symbol) = h in Int64.add data_bottom_addr size_of_last_symbol
 
 let assemble (p:prog) : exec =
   let (text_only_list, data_only_list) = split_text_data p ([],[]) in
