@@ -663,8 +663,9 @@ let load {entry; text_pos; data_pos; text_seg; data_seg} : mach =
   let txt_array = Array.of_list text_seg in
   let data_array = Array.of_list data_seg in
   let txt_array_len = Array.length txt_array in
+  let data_array_len = Array.length data_array in
   Array.blit txt_array 0 init_mem 0 txt_array_len;
-  Array.blit data_array 0 init_mem txt_array_len (Array.length data_array);
+  Array.blit data_array 0 init_mem txt_array_len data_array_len;
 
   (* init register: RIP reg at index 16, RSP reg  at index 7 (init stack pointer = second last mem address) *)
   let init_regs : regs = Array.make 17 (Int64.of_int 0) in
@@ -672,7 +673,8 @@ let load {entry; text_pos; data_pos; text_seg; data_seg} : mach =
   Array.set init_regs 7 (Int64.sub mem_top 16L);
 
   (* the highest address should be the sentinel exit_addr. *)
-  Array.set init_mem (Int64.to_int mem_top) exit_addr;
+  let ret_sbyte : sbyte list = (sbytes_of_int64 0xfdeadL) in 
+    Array.blit (Array.of_list ret_sbyte) 0 init_mem ((Array.length init_mem) - 8) 8;
 
   (* intialize flags *)
   let init_flags : flags = {fo = false; fs = false; fz = false} in 
