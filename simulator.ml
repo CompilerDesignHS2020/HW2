@@ -252,7 +252,8 @@ let get_elem (l:operand list) (ind0:int) : operand =
 let step (m:mach) : unit =
   let inst_byte = m.mem.(get_mem_ind m.regs.( rind Rip)) in
   begin match inst_byte with
-    | InsB0 (opcode, oplist) -> (begin match opcode with
+    | InsB0 (opcode, oplist) -> if !debug_simulator then print_endline @@ (Int64.to_string m.regs.( rind Rip))^(" is: ")^(string_of_ins (opcode, oplist));
+    (begin match opcode with
         (* movq oplist0 to oplist1 *)
         | Movq -> write_op m (get_elem oplist 1) (read_op m (get_elem oplist 0));
           (* 
@@ -408,14 +409,12 @@ let step (m:mach) : unit =
 
             (* Jmp src1: rip = src1 *)
         | Jmp ->
-          write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
+          write_op m (Reg(Rip)) (Int64.sub (read_op m (get_elem oplist 0)) 8L)
 
         (* J CC src1: if CC holds then RIP = src1, else RIP -= 8 (at end of step fun it gets incremented) *)
         | J(cnd) ->
           if (interp_cnd m.flags cnd) then 
-            write_op m (Reg(Rip)) (read_op m (get_elem oplist 0))
-          else
-            write_op m (Reg(Rip)) (Int64.sub (read_op m (Reg(Rip))) 8L)
+            write_op m (Reg(Rip)) (Int64.sub (read_op m (get_elem oplist 0)) 8L)
 
         (* cmpq src1 src2: do src2 - src1; change flags respectively *)
         | Cmpq  ->
@@ -432,19 +431,19 @@ let step (m:mach) : unit =
         (* Callq SRC: push rip to top of stack; rsp = rsp - 8; move SRC to rip*)
         | Callq ->
           write_op m (Reg(Rsp)) (Int64.sub (read_op m (Reg(Rsp))) 8L);
-          write_op m (Ind2(Rsp)) (read_op m (Reg(Rip)));
-          write_op m (Reg(Rip)) (read_op m (get_elem oplist 0)) 
+          write_op m (Ind2(Rsp)) (Int64.add (read_op m (Reg(Rip))) 8L);
+          write_op m (Reg(Rip)) (Int64.sub (read_op m (get_elem oplist 0)) 8L) 
 
         (* Retq: pop top of stack into rip; rsp = rsp + 8*)
         | Retq -> 
-          write_op m (Reg(Rip)) (read_op m (Ind2(Rsp))); 
+          write_op m (Reg(Rip)) (Int64.sub(read_op m (Ind2(Rsp))) 8L); 
           write_op m (Reg(Rsp)) (Int64.add (read_op m (Reg(Rsp))) 8L)
 
       end);
       write_op m (Reg(Rip)) (Int64.add (read_op m (Reg(Rip))) 8L);
 
     | InsFrag -> () (* never read this you fool *)
-    | Byte(b) -> () (* read data byte, this is illegal *)
+    | Byte(b) -> print_endline @@ "SegFault" (* read data byte, this is illegal *)
   end
 
 
@@ -670,7 +669,7 @@ let load {entry; text_pos; data_pos; text_seg; data_seg} : mach =
   (* init register: RIP reg at index 16, RSP reg  at index 7 (init stack pointer = second last mem address) *)
   let init_regs : regs = Array.make 17 (Int64.of_int 0) in
   Array.set init_regs 16 entry;
-  Array.set init_regs 7 (Int64.sub mem_top 16L);
+  Array.set init_regs 7 (Int64.sub mem_top 8L);
 
   (* the highest address should be the sentinel exit_addr. *)
   let ret_sbyte : sbyte list = (sbytes_of_int64 0xfdeadL) in 

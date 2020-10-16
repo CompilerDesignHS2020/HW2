@@ -591,9 +591,11 @@ let easy_tests : suite =
   ]);
 ]
 
+(* print_sbytes (assemble helloworld).text_seg;print_endline @@ "-----------------";print_sbytes helloworld_textseg; *)
+
 let medium_tests : suite = [
   GradedTest("Medium Assemble Tests", 5,[
-    ("assemble1", assert_eqf (fun () -> print_sbytes (assemble helloworld).text_seg;print_endline @@ "-----------------";print_sbytes helloworld_textseg;(assemble helloworld).text_seg) helloworld_textseg );
+    ("assemble1", assert_eqf (fun () -> (assemble helloworld).text_seg) helloworld_textseg );
     ("assemble2", undefinedsym_test [text "foo" [Retq,[]]]);
     ("assemble3", assert_eqf (fun () -> (assemble helloworld).data_seg) helloworld_dataseg );
     ("assemble4", undefinedsym_test [text "main" [Jmp,[~$$"loop"];Retq,[]]]);
@@ -614,7 +616,7 @@ let medium_tests : suite = [
 
 let hard_tests : suite = [
   GradedTest ("End-to-end Factorial", 10, [
-    ("fact6", program_test (factorial_rec 6) 720L);
+    ("fact6", (print_endline @@ ("---------------------") ;program_test (factorial_rec 6)) 720L);
   ]);
   GradedTest ("Hidden End-to-end Hard", 20, [ ])
 ]
