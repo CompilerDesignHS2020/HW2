@@ -573,8 +573,8 @@ let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins =
       | Imm(Lit(imm)) -> Imm(Lit(imm))
       | Imm(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
       | Reg(r) -> Reg(r)
-      | Ind1(Lit(imm)) -> Imm(Lit(imm))
-      | Ind1(Lbl(lbl)) -> Imm(Lit(lbl_to_lit lbl sym_tbl))
+      | Ind1(Lit(imm)) -> Ind1(Lit(imm))
+      | Ind1(Lbl(lbl)) -> Ind1(Lit(lbl_to_lit lbl sym_tbl))
       | Ind2(r) -> Ind2(r)
       | Ind3(Lit(imm), r) -> Ind3(Lit(imm), r)
       | Ind3(Lbl(lbl), r) -> Ind3(Lit(lbl_to_lit lbl sym_tbl), r)
@@ -623,6 +623,15 @@ let rec create_seg (element_list: elem list) (sym_tbl: sym list) : sbyte list =
   | h::tl -> let sbytes_of_head = create_sbyte_from_elem h sym_tbl in 
     sbytes_of_head@(create_seg tl sym_tbl)
 
+let rec print_sbytes (sbytes :sbyte list) : unit =
+  match sbytes with
+  | [] -> ()
+  | h::tl -> begin match h with
+    | InsB0(ins) -> if !debug_simulator then print_endline @@ (string_of_ins ins); print_sbytes tl
+    | InsFrag -> if !debug_simulator then print_endline @@ ("insfrag"); print_sbytes tl
+    | Byte(char) -> if !debug_simulator then print_endline @@ (Char.escaped char); print_sbytes tl 
+  end
+
 let assemble (p:prog) : exec =
   let (text_only_list, data_only_list) = split_text_data p ([],[]) in
   let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list in
@@ -630,6 +639,7 @@ let assemble (p:prog) : exec =
   let text_seg = create_seg text_only_list sym_tbl in
   let data_seg = create_seg data_only_list sym_tbl in
   let data_bottom_addr = calc_data_bottom_addr text_sym_tbl in
+  (* print_sbytes text_seg;*)
   {entry = lbl_to_lit "main" sym_tbl; text_pos = mem_bot; data_pos = data_bottom_addr;  text_seg = text_seg; data_seg = data_seg}
 
 
