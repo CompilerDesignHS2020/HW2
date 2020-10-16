@@ -516,34 +516,58 @@ let calc_elem_size (cur_elem: elem) : int64 =
 let create_sym_entry (incomplete_list :sym list) (cur_elem: elem) : (sym list) = 
   match incomplete_list with
   | [] -> [(cur_elem.lbl, mem_bot, calc_elem_size cur_elem)]
-  | h::tl -> let (_,last_mem_addr,_) = h in 
+  | h::tl -> let (_,last_mem_addr,last_sym_size) = h in 
     let cur_size = calc_elem_size cur_elem in
-    [(cur_elem.lbl, Int64.add last_mem_addr cur_size , cur_size )]@incomplete_list
+    [(cur_elem.lbl, Int64.add last_mem_addr last_sym_size , cur_size )]@incomplete_list
 
 let calc_data_bottom_addr (text_sym_tbl: sym list) : int64 =
   match text_sym_tbl with
   | [] -> mem_bot
-  | h::tl -> let ( _, data_bottom_addr ,_) = h in data_bottom_addr
+  | h::tl -> let ( _, data_bottom_addr ,size_of_last_symbol) = h in Int64.add data_bottom_addr size_of_last_symbol
+
+let rec sbytes_of_data_list (datas: data list) : sbyte list =
+  match datas with
+  | [] -> []
+  | h::tl -> (sbytes_of_data h)@(sbytes_of_data_list tl)
+
+let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins = 
+
+
+let rec sbytes_of_ins_list (insts: ins list) (sym_tbl: sym list) : sbyte list =
+  match insts with
+  | [] -> []
+  | h::tl -> (sbytes_of_ins (replace_lbl h sym_tbl))@(sbytes_of_ins_list tl sym_tbl)
+
+let create_sbyte_from_elem (cur_elem: elem) (sym_tbl: sym list) : sbyte list = 
+  match cur_elem.asm with 
+  | Text(insts) -> 
+  | Data(datas) -> sbytes_of_data_list datas
+
+let rec create_text_seg (text_only_list: elem list) (sym_tbl: sym list) : sbyte list =
+  match text_only_list with
+  | [] -> []
+  | h::tl -> let sbytes_of_head = create_sbyte_from_elem h sym_tbl in 
+    sbytes_of_head@(create_sym_entry tl sym_tbl)
 
 let assemble (p:prog) : exec =
   let (text_only_list, data_only_list) = split_text_data p ([],[]) in
   let text_sym_tbl = List.fold_left create_sym_entry [] text_only_list in
-  let data_bottom_addr = calc_data_bottom_addr text_sym_tbl in
+  let sym_tbl = List.fold_left create_sym_entry text_sym_tbl data_only_list in
+  let text_seg = List.fold_left 
 
 
+(* Convert an object file into an executable machine state. 
+    - allocate the mem array
+    - set up the memory state by writing the symbolic bytes to the 
+      appropriate locations 
+    - create the inital register state
+      - initialize rip to the entry point address
+      - initializes rsp to the last word in memory 
+      - the other registers are initialized to 0
+    - the condition code flags start as 'false'
 
-  (* Convert an object file into an executable machine state. 
-      - allocate the mem array
-      - set up the memory state by writing the symbolic bytes to the 
-        appropriate locations 
-      - create the inital register state
-        - initialize rip to the entry point address
-        - initializes rsp to the last word in memory 
-        - the other registers are initialized to 0
-      - the condition code flags start as 'false'
-
-     Hint: The Array.make, Array.blit, and Array.of_list library functions 
-     may be of use.
-  *)
-  let load {entry; text_pos; data_pos; text_seg; data_seg} : mach = 
-    failwith "load unimplemented"
+   Hint: The Array.make, Array.blit, and Array.of_list library functions 
+   may be of use.
+*)
+let load {entry; text_pos; data_pos; text_seg; data_seg} : mach = 
+  failwith "load unimplemented"
