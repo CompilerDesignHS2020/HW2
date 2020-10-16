@@ -570,6 +570,75 @@ let condition_flag_set_tests =
   ; ("cc_lea", csi_test 3 cc_lea)
   ]
 
+
+(* Community *)
+let fib n =
+[ text "fib"
+[ Cmpq, [~$1; ~%Rdi]
+; J Le, [~$$"base"]
+
+; Subq, [~$16; ~%Rsp]
+
+; Decq, [~%Rdi]
+; Movq, [~%Rdi; Ind2 Rsp]
+; Callq, [~$$"fib"]
+; Movq, [~%Rax; Ind3 (Lit 8L, Rsp)]
+; Movq, [Ind2 Rsp; ~%Rdi]
+
+; Decq, [~%Rdi]
+; Callq, [~$$"fib"]
+; Addq, [Ind3 (Lit 8L, Rsp); ~%Rax]
+
+; Addq, [~$16; ~%Rsp]
+; Retq, []
+]
+; text "base"
+[ Movq, [~%Rdi; ~%Rax]
+; Retq, []
+]
+; text "main"
+[ Movq, [~$n; ~%Rdi]
+; Callq, [~$$"fib"]
+; Retq, []
+]
+]
+
+let stack =
+[ text "main"
+[ Subq, [~$16; ~%Rsp]
+
+; Movq, [~$42; ~%Rax]
+; Movq, [~%Rax; Ind2 Rsp]
+; Decq, [~%Rax]
+
+; Movq, [~$69; Ind3 (Lit 8L, Rsp)]
+; Movq, [Ind2 Rsp; ~%Rax]
+
+; Addq, [Ind3 (Lit 8L, Rsp); ~%Rax]
+
+; Addq, [~$16; ~%Rsp]
+; Retq, []
+]
+]
+
+let ind2_test =
+[ text "main"
+[ Movq, [~$4194328; ~%Rdi]
+; Movq, [Ind2 Rdi; ~%Rax]
+; Retq, []
+]
+; data "num"
+[ Quad (Lit 99L)
+]
+]
+
+let e2e = [
+("Rec Test: fibonacci", program_test (fib 3) 2L);
+("Stack Test", program_test stack 111L);
+("Ind2 Test", program_test ind2_test 99L);
+]
+
+
 (* Test Suites *)
 
 let easy_tests : suite =
@@ -638,7 +707,10 @@ let bit_manipulation =
   ]
 
 
-let provided_tests : suite = [ Test ("Bit manipulation", bit_manipulation) ]
+let provided_tests : suite = [ Test ("Bit manipulation", bit_manipulation);
+Test ("Bit manipulation", bit_manipulation);
+Test ("End-to-end", e2e);
+ ]
 
 
 let graded_tests : suite =
