@@ -1,21 +1,20 @@
-(* 
 
-(Simulator.assemble Gradedtests.helloworld).text_seg;;
-*)
+#use "topfind";;
+#load "_build/x86/x86.cmo";;
+#use "simulator.ml";;
+open Assert
+open Asm
 
 (*
+ Test suite for asm.ml
+ *)
 
-#load "_build/int64_overflow.cmo";;
-#load "_build/x86/x86.cmo";;
-#load "_build/simulator.cmo";;
-#load "gradedtests.ml";;
+(* Do NOT modify this file -- we will overwrite it with our *)
+(* own version when we test your project.                   *)
 
-open Gradedtests;;
-*)
-#use "util/assert.ml";;
-#use "x86/x86.ml";;
-#use "gradedtests.ml";;
-#use "simulator.ml";;
+(* These tests will be used to grade your assignment *)
+
+(* Example Programs *)
 
 let helloworld = [ text "foo"
                             [ Xorq, [~%Rax; ~%Rax]
@@ -31,9 +30,16 @@ let helloworld = [ text "foo"
                             [ Quad (Lit 99L)
                             ; Asciz "Hello, world!"
                             ]
-                     ]
-in
+                     ];;
 
-assemble helloworld ;;
+let helloworld_textseg =
+  [ InsB0 (Xorq, [Reg Rax; Reg Rax]);              InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag
+  ; InsB0 (Movq, [Imm (Lit 100L); Reg Rax]);       InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag
+  ; InsB0 (Retq, []);                              InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag
+  ; InsB0 (Xorq, [Reg Rax; Reg Rax]);              InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag
+  ; InsB0 (Movq, [Ind1 (Lit 0x400030L); Reg Rax]); InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag
+  ; InsB0 (Retq, []);                              InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag;InsFrag
+  ];;
 
-#quit;; 
+
+

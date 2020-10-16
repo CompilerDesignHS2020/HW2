@@ -29,3 +29,4 @@ let _ =
     | [] -> print_endline "* Nothing to do"
     | _ -> List.iter do_one_file !worklist
   with Ran_tests -> ()
+
