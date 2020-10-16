@@ -551,11 +551,21 @@ let sbytes_of_ins_list (init_inst_list: ins list) (sym_tbl: sym list) : sbyte li
     | h::tl -> (sbytes_of_ins (replace_lbl h sym_tbl))@(rec_sbytes_of_ins_list tl)
   rec_sbytes_of_ins_list init_inst_list
 
+(*
+creates an sbyte from an elem. 
+- distinguishes between data and 
+- calls element-wise fun "create_sbyte_from_elem"
+ *)
 let create_sbyte_from_elem (cur_elem: elem) (sym_tbl: sym list) : sbyte list = 
   match cur_elem.asm with 
   | Text(insts) -> 
   | Data(datas) -> sbytes_of_data_list datas
 
+(*
+creates an sbyte list from  elem list. 
+- elem list is text only or data only
+- calls element-wise fun "create_sbyte_from_elem"
+ *)
 let rec create_text_seg (text_only_list: elem list) (sym_tbl: sym list) : sbyte list =
   match text_only_list with
   | [] -> []
