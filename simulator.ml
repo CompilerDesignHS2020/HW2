@@ -530,6 +530,17 @@ let rec sbytes_of_data_list (datas: data list) : sbyte list =
   | [] -> []
   | h::tl -> (sbytes_of_data h)@(sbytes_of_data_list tl)
 
+let lbl_to_lit (wanted_lbl: string) (init_sym_table : sym list) : int64 =
+  let rec rec_lbl_to_lit sym_table in
+    match sym_table with
+      | [] -> Undefined_symbol
+      | h::tl -> let (lbl,addr,_) = h in
+        if lbl = wanted_lbl then 
+          addr
+        else 
+          rec_lbl_to_lit tl
+  rec_lbl_to_lit init_sym_table
+
 let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins = 
 
 
