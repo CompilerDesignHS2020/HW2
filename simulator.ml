@@ -544,10 +544,12 @@ let replace_lbl (cur_ins: ins) (sym_tbl: sym list) : ins =
   let (opcode, operands) = cur_ins in
   (opcode, replace_lbl_from_operand_list ) 
 
-let rec sbytes_of_ins_list (insts: ins list) (sym_tbl: sym list) : sbyte list =
-  match insts with
-  | [] -> []
-  | h::tl -> (sbytes_of_ins (replace_lbl h sym_tbl))@(sbytes_of_ins_list tl sym_tbl)
+let sbytes_of_ins_list (init_inst_list: ins list) (sym_tbl: sym list) : sbyte list =
+  let rec rec_sbytes_of_ins_list = insts in
+    match insts with
+    | [] -> []
+    | h::tl -> (sbytes_of_ins (replace_lbl h sym_tbl))@(rec_sbytes_of_ins_list tl)
+  rec_sbytes_of_ins_list init_inst_list
 
 let create_sbyte_from_elem (cur_elem: elem) (sym_tbl: sym list) : sbyte list = 
   match cur_elem.asm with 
